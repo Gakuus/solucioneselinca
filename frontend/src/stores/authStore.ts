@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { api } from '../services/api';
 
 interface User {
   id: string;
@@ -11,28 +12,114 @@ interface User {
 interface AuthState {
   user: User | null;
   token: string | null;
-  refreshToken: string | null;
   isAuthenticated: boolean;
-  login: (user: User, token: string, refreshToken: string) => void;
-  logout: () => void;
-  updateUser: (user: User) => void;
+  isLoading: boolean;
+  error: string | null;
+  login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  refreshToken: () => Promise<void>;
+  clearError: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       token: null,
-      refreshToken: null,
       isAuthenticated: false,
-      login: (user, token, refreshToken) =>
-        set({ user, token, refreshToken, isAuthenticated: true }),
-      logout: () =>
-        set({ user: null, token: null, refreshToken: null, isAuthenticated: false }),
-      updateUser: (user) => set({ user }),
+      isLoading: false,
+      error: null,
+
+      login: async (email: string, password: string) => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await api.post('/auth/login', { email, password });
+          const { user, accessToken } = response.data;
+
+          api.setAccessToken(accessToken);
+          set({
+            user,
+            token: accessToken,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        } catch (error: any) {
+          set({
+            isLoading: false,
+            error: error.message || 'Error al iniciar sesión',
+          });
+          throw error;
+        }
+      },
+
+      register: async (name: string, email: string, password: string) => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await api.post('/auth/register', { name, email, password });
+          const { user, accessToken } = response.data;
+
+          api.setAccessToken(accessToken);
+          set({
+            user,
+            token: accessToken,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        } catch (error: any) {
+          set({
+            isLoading: false,
+            error: error.message || 'Error al registrar usuario',
+          });
+          throw error;
+        }
+      },
+
+      logout: async () => {
+        try {
+          await api.post('/auth/logout');
+        } catch {
+          // Ignore logout errors
+        } finally {
+          api.setAccessToken(null);
+          set({
+            user: null,
+            token: null,
+            isAuthenticated: false,
+          });
+        }
+      },
+
+      refreshToken: async () => {
+        try {
+          const newToken = await api.refreshAccessToken();
+          if (newToken) {
+            api.setAccessToken(newToken);
+            set({ token: newToken });
+          } else {
+            // Refresh failed, logout
+            get().logout();
+          }
+        } catch {
+          get().logout();
+        }
+      },
+
+      clearError: () => set({ error: null }),
     }),
     {
       name: 'auth-storage',
+      partialize: (state) => ({
+        user: state.user,
+        token: state.token,
+        isAuthenticated: state.isAuthenticated,
+      }),
+      onRehydrateStorage: () => (state) => {
+        // Restore token in API client on rehydration
+        if (state?.token) {
+          api.setAccessToken(state.token);
+        }
+      },
     }
   )
 );

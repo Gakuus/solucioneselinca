@@ -11,6 +11,10 @@ import { requestLogger } from './shared/middleware/requestLogger';
 import { rateLimiter } from './shared/middleware/rateLimiter';
 import { requestId } from './shared/middleware/requestId';
 import { healthRouter } from './shared/routes/health';
+import authRouter from './modules/auth/auth.routes';
+import machinesRouter from './modules/machines/machines.routes';
+import usersRouter from './modules/users/users.routes';
+import dashboardRouter from './modules/dashboard/dashboard.routes';
 
 async function bootstrap() {
   const config = loadConfig();
@@ -26,7 +30,20 @@ async function bootstrap() {
   app.use(requestLogger);
   app.use(rateLimiter);
 
+  // Health check
   app.use('/api/v1', healthRouter);
+
+  // Auth routes
+  app.use('/api/v1/auth', authRouter);
+
+  // Machines routes
+  app.use('/api/v1/machines', machinesRouter);
+
+  // Users routes
+  app.use('/api/v1/users', usersRouter);
+
+  // Dashboard routes
+  app.use('/api/v1/dashboard', dashboardRouter);
 
   app.use(errorHandler);
 
