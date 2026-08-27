@@ -1,7 +1,7 @@
 {
   "name": "solucioneselinca-backend",
   "version": "1.0.0",
-  "description": "Backend API for Soluciones ELINCA",
+  "description": "Backend API for SOLUCIONES EL INCA",
   "main": "dist/app.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/app.ts",

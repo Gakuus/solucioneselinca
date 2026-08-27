@@ -35,7 +35,7 @@ export function Sidebar() {
   return (
     <aside className="bg-black text-white w-64 flex-shrink-0">
       <div className="p-4 border-b border-gray-800">
-        <h1 className="text-xl font-bold">Soluciones ELINCA</h1>
+        <h1 className="text-xl font-bold">SOLUCIONES <span className="text-red-500">EL INCA</span></h1>
       </div>
       <nav className="p-4">
         <ul className="space-y-2">
