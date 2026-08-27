@@ -21,6 +21,7 @@ import alertsRouter from './modules/alerts/alerts.routes';
 import auditRouter from './modules/audit/audit.routes';
 import reportsRouter from './modules/reports/reports.routes';
 import schedulingRouter from './modules/scheduling/scheduling.routes';
+import configRouter from './modules/config/config.routes';
 
 async function bootstrap() {
   const config = loadConfig();
@@ -71,6 +72,9 @@ async function bootstrap() {
 
   // Scheduling routes
   app.use('/api/v1/scheduling', schedulingRouter);
+
+  // Config routes
+  app.use('/api/v1/config', configRouter);
 
   app.use(errorHandler);
 

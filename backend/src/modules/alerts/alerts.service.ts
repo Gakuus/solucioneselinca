@@ -1,8 +1,8 @@
-import { PrismaClient, Prisma, AlertType, AlertSeverity } from '@prisma/client';
+import { prisma } from '../../config/database';
+import { Prisma, AlertType, AlertSeverity } from '@prisma/client';
 import { NotFoundError, BadRequestError } from '../../shared/errors/AppError';
 import { CreateAlertInput, UpdateAlertInput, AlertQueryInput } from './alerts.validation';
-
-const prisma = new PrismaClient();
+import { configService } from '../config/config.service';
 
 export class AlertsService {
   async getAll(query: AlertQueryInput) {
@@ -228,14 +228,16 @@ export class AlertsService {
 
   async checkUpcomingMaintenances() {
     const now = new Date();
-    const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    // Read the configurable number of days ahead from SystemConfig (default 7)
+    const daysBefore = await configService.getValue<number>('alert_days_before', 7);
+    const window = new Date(now.getTime() + daysBefore * 24 * 60 * 60 * 1000);
 
     const upcomingMaintenances = await prisma.maintenance.findMany({
       where: {
         status: 'SCHEDULED',
         nextMaintenanceDate: {
           gte: now,
-          lte: nextWeek,
+          lte: window,
         },
       },
       include: {
