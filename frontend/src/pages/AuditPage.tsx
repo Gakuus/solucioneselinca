@@ -198,9 +198,9 @@ export function AuditPage() {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Usuario</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acción</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entidad</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acción</th>
+                <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entidad</th>
+                <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
               </tr>
             </thead>
@@ -208,15 +208,15 @@ export function AuditPage() {
               {logs.map((log) => (
                 <tr key={log.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {new Date(log.createdAt).toLocaleString()}
+                    {new Date(log.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium">{log.user?.name || 'Sistema'}</div>
-                    <div className="text-sm text-gray-500">{log.user?.email}</div>
+                    <div className="hidden sm:table-cell text-sm text-gray-500">{log.user?.email}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{getActionBadge(log.action)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">{log.entityType}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap">{getActionBadge(log.action)}</td>
+                  <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm">{log.entityType}</td>
+                  <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {log.entityId ? log.entityId.substring(0, 8) + '...' : '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -240,6 +240,16 @@ export function AuditPage() {
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+            <div className="flex-1 flex justify-between sm:hidden">
+              <button onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1}
+                className="relative inline-flex items-center px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
+                Anterior
+              </button>
+              <button onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages}
+                className="ml-3 relative inline-flex items-center px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
+                Siguiente
+              </button>
+            </div>
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <p className="text-sm text-gray-700">
                 Página <span className="font-medium">{currentPage}</span> de{' '}
@@ -252,7 +262,7 @@ export function AuditPage() {
                     <button
                       key={page}
                       onClick={() => setCurrentPage(page)}
-                      className={`px-3 py-1 border rounded ${
+                      className={`px-3 py-2 border rounded ${
                         currentPage === page
                           ? 'bg-red-600 text-white'
                           : 'bg-white text-gray-700 hover:bg-gray-50'

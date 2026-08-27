@@ -218,10 +218,9 @@ export function MachinesPage() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Marca</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Máquina</th>
+                <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Marca</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
               </tr>
@@ -229,13 +228,17 @@ export function MachinesPage() {
             <tbody className="divide-y divide-gray-200">
               {machines.map((machine) => (
                 <tr key={machine.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap font-medium">{machine.code}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{machine.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{machine.machineType?.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{machine.brand || '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="font-medium">{machine.code}</div>
+                    <div className="text-sm text-gray-500 sm:hidden">{machine.name}</div>
+                    <div className="hidden sm:table-cell">{machine.name}</div>
+                  </td>
+                  <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap">{machine.machineType?.name}</td>
+                  <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap">{machine.brand || '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(machine.status)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <button className="text-red-600 hover:text-red-900 mr-3">Ver</button>
+                    <div className="flex flex-wrap gap-2">
+                    <button className="text-red-600 hover:text-red-900">Ver</button>
                     {canEdit && (
                       <>
                         <button
@@ -243,7 +246,7 @@ export function MachinesPage() {
                             setSelectedMachine(machine);
                             alert('Formulario de edición no disponible aún');
                           }}
-                          className="text-gray-600 hover:text-gray-900 mr-3"
+                          className="text-gray-600 hover:text-gray-900"
                         >
                           Editar
                         </button>
@@ -252,7 +255,7 @@ export function MachinesPage() {
                             setSelectedMachine(machine);
                             setIsStatusModalOpen(true);
                           }}
-                          className="text-yellow-600 hover:text-yellow-900 mr-3"
+                          className="text-yellow-600 hover:text-yellow-900"
                         >
                           Estado
                         </button>
@@ -266,6 +269,7 @@ export function MachinesPage() {
                         Eliminar
                       </button>
                     )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -305,7 +309,7 @@ export function MachinesPage() {
                     <button
                       key={page}
                       onClick={() => setCurrentPage(page)}
-                      className={`px-3 py-1 border rounded ${
+                      className={`px-3 py-2 border rounded ${
                         currentPage === page
                           ? 'bg-red-600 text-white'
                           : 'bg-white text-gray-700 hover:bg-gray-50'
@@ -364,7 +368,7 @@ function StatusChangeModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-lg mx-4">
+      <div className="bg-white rounded-lg p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
         <h2 className="text-lg font-semibold mb-4">Cambiar Estado</h2>
         <p className="text-sm text-gray-600 mb-4">
           Máquina: {machine.code} - {machine.name}

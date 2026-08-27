@@ -250,28 +250,24 @@ export function AlertsPage() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Máquina</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mensaje</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alerta</th>
+                <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Severidad</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {alerts.map((alert) => (
                 <tr key={alert.id} className={`hover:bg-gray-50 ${!alert.isRead ? 'bg-red-50' : ''}`}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="font-medium">{alert.machine?.code}</div>
-                    <div className="text-sm text-gray-500">{alert.machine?.name}</div>
-                  </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm max-w-md truncate">{alert.message}</div>
+                    <div className="font-medium text-sm">{alert.machine?.code}</div>
+                    <div className="text-xs text-gray-500 max-w-[180px] truncate">{alert.message}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{getTypeBadge(alert.type)}</td>
+                  <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap">{getTypeBadge(alert.type)}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{getSeverityBadge(alert.severity)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap">
                     <span
                       className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         alert.isRead ? 'bg-gray-100 text-gray-800' : 'bg-green-100 text-green-800'
@@ -280,7 +276,7 @@ export function AlertsPage() {
                       {alert.isRead ? 'Leída' : 'No leída'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(alert.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -311,6 +307,16 @@ export function AlertsPage() {
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+            <div className="flex-1 flex justify-between sm:hidden">
+              <button onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1}
+                className="relative inline-flex items-center px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
+                Anterior
+              </button>
+              <button onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages}
+                className="ml-3 relative inline-flex items-center px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
+                Siguiente
+              </button>
+            </div>
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <p className="text-sm text-gray-700">
                 Página <span className="font-medium">{currentPage}</span> de{' '}
@@ -323,7 +329,7 @@ export function AlertsPage() {
                     <button
                       key={page}
                       onClick={() => setCurrentPage(page)}
-                      className={`px-3 py-1 border rounded ${
+                      className={`px-3 py-2 border rounded ${
                         currentPage === page
                           ? 'bg-red-600 text-white'
                           : 'bg-white text-gray-700 hover:bg-gray-50'

@@ -211,9 +211,9 @@ export function SchedulingPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Máquina</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Frecuencia</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Próxima Ejecución</th>
+                <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Próxima Ejecución</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
               </tr>
@@ -223,9 +223,10 @@ export function SchedulingPage() {
                 <tr key={schedule.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="font-medium">{schedule.machine?.code}</div>
-                    <div className="text-sm text-gray-500">{schedule.machine?.name}</div>
+                    <div className="text-sm text-gray-500 sm:hidden">{schedule.machine?.name}</div>
+                    <div className="hidden sm:table-cell text-sm text-gray-500">{schedule.machine?.name}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap">
                     <div>{schedule.maintenanceType?.name}</div>
                     <div className="text-sm text-gray-500">
                       {schedule.maintenanceType?.isPreventive ? 'Preventivo' : 'Correctivo'}
@@ -235,7 +236,7 @@ export function SchedulingPage() {
                     {getFrequencyBadge(schedule.frequency)}
                     <div className="text-sm text-gray-500">Cada {schedule.interval}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm">
                     {new Date(schedule.nextExecution).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -249,19 +250,19 @@ export function SchedulingPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     {canEdit && (
-                      <>
+                      <div className="flex flex-wrap gap-2">
                         <button
                           onClick={() => {
                             setSelectedSchedule(schedule);
                             setIsFormOpen(true);
                           }}
-                          className="text-red-600 hover:text-red-900 mr-3"
+                          className="text-red-600 hover:text-red-900"
                         >
                           Editar
                         </button>
                         <button
                           onClick={() => handleToggleActive(schedule)}
-                          className={`mr-3 ${
+                          className={`${
                             schedule.isActive ? 'text-yellow-600 hover:text-yellow-900' : 'text-green-600 hover:text-green-900'
                           }`}
                         >
@@ -269,17 +270,17 @@ export function SchedulingPage() {
                         </button>
                         <button
                           onClick={() => handleExecute(schedule)}
-                          className="text-purple-600 hover:text-purple-900 mr-3"
+                          className="text-purple-600 hover:text-purple-900 hidden sm:inline"
                         >
                           Ejecutar
                         </button>
                         <button
                           onClick={() => handleDelete(schedule.id)}
-                          className="text-red-600 hover:text-red-900"
+                          className="text-red-600 hover:text-red-900 hidden sm:inline"
                         >
                           Eliminar
                         </button>
-                      </>
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -291,6 +292,16 @@ export function SchedulingPage() {
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+            <div className="flex-1 flex justify-between sm:hidden">
+              <button onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1}
+                className="relative inline-flex items-center px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
+                Anterior
+              </button>
+              <button onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages}
+                className="ml-3 relative inline-flex items-center px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
+                Siguiente
+              </button>
+            </div>
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <p className="text-sm text-gray-700">
                 Página <span className="font-medium">{currentPage}</span> de{' '}
@@ -303,7 +314,7 @@ export function SchedulingPage() {
                     <button
                       key={page}
                       onClick={() => setCurrentPage(page)}
-                      className={`px-3 py-1 border rounded ${
+                      className={`px-3 py-2 border rounded ${
                         currentPage === page
                           ? 'bg-red-600 text-white'
                           : 'bg-white text-gray-700 hover:bg-gray-50'
