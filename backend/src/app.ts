@@ -17,6 +17,8 @@ import usersRouter from './modules/users/users.routes';
 import dashboardRouter from './modules/dashboard/dashboard.routes';
 import catalogsRouter from './modules/catalogs/catalogs.routes';
 import maintenancesRouter from './modules/maintenances/maintenances.routes';
+import alertsRouter from './modules/alerts/alerts.routes';
+import auditRouter from './modules/audit/audit.routes';
 
 async function bootstrap() {
   const config = loadConfig();
@@ -52,6 +54,12 @@ async function bootstrap() {
 
   // Maintenances routes
   app.use('/api/v1/maintenances', maintenancesRouter);
+
+  // Alerts routes
+  app.use('/api/v1/alerts', alertsRouter);
+
+  // Audit routes
+  app.use('/api/v1/audit', auditRouter);
 
   app.use(errorHandler);
 
