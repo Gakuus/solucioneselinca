@@ -56,7 +56,7 @@ export function AuditPage() {
   const getActionBadge = (action: string) => {
     const styles: Record<string, string> = {
       CREATE: 'bg-green-100 text-green-800',
-      UPDATE: 'bg-blue-100 text-blue-800',
+      UPDATE: 'bg-red-100 text-red-800',
       DELETE: 'bg-red-100 text-red-800',
       LOGIN: 'bg-purple-100 text-purple-800',
       LOGOUT: 'bg-gray-100 text-gray-800',
@@ -119,7 +119,7 @@ export function AuditPage() {
             <div className="text-sm text-gray-500">Creaciones</div>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-2xl font-bold text-blue-600">{stats.byAction?.UPDATE || 0}</div>
+            <div className="text-2xl font-bold text-red-600">{stats.byAction?.UPDATE || 0}</div>
             <div className="text-sm text-gray-500">Actualizaciones</div>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
@@ -140,7 +140,7 @@ export function AuditPage() {
               setSearch(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
           />
           <select
             value={actionFilter}
@@ -148,7 +148,7 @@ export function AuditPage() {
               setActionFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
           >
             <option value="">Todas las acciones</option>
             <option value="CREATE">Crear</option>
@@ -163,7 +163,7 @@ export function AuditPage() {
               setEntityFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
           >
             <option value="">Todas las entidades</option>
             <option value="User">Usuario</option>
@@ -224,7 +224,7 @@ export function AuditPage() {
                         setSelectedLog(log);
                         setIsDetailOpen(true);
                       }}
-                      className="text-blue-600 hover:text-blue-900"
+                      className="text-red-600 hover:text-red-900"
                     >
                       Ver Detalles
                     </button>
@@ -252,7 +252,7 @@ export function AuditPage() {
                       onClick={() => setCurrentPage(page)}
                       className={`px-3 py-1 border rounded ${
                         currentPage === page
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-red-600 text-white'
                           : 'bg-white text-gray-700 hover:bg-gray-50'
                       }`}
                     >

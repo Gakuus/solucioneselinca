@@ -19,7 +19,7 @@ export function Header() {
           <input
             type="text"
             placeholder="Buscar..."
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-64"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 w-64"
           />
         </div>
         <div className="flex items-center gap-4">
@@ -30,7 +30,7 @@ export function Header() {
             </span>
           </Button>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center">
               <User size={16} className="text-white" />
             </div>
             <div className="text-sm">

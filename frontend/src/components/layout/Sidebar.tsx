@@ -33,8 +33,8 @@ export function Sidebar() {
   const filteredMenu = menuItems.filter(item => item.roles.includes(userRole));
 
   return (
-    <aside className="bg-slate-900 text-white w-64 flex-shrink-0">
-      <div className="p-4 border-b border-slate-700">
+    <aside className="bg-black text-white w-64 flex-shrink-0">
+      <div className="p-4 border-b border-gray-800">
         <h1 className="text-xl font-bold">Soluciones ELINCA</h1>
       </div>
       <nav className="p-4">
@@ -46,8 +46,8 @@ export function Sidebar() {
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
                     isActive
-                      ? 'bg-blue-600 text-white'
-                      : 'text-slate-300 hover:bg-slate-800'
+                      ? 'bg-red-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-800'
                   }`
                 }
               >

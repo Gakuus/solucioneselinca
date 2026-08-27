@@ -105,7 +105,7 @@ export function AlertsPage() {
 
   const getTypeBadge = (type: string) => {
     const styles: Record<string, string> = {
-      UPCOMING: 'bg-blue-100 text-blue-800',
+      UPCOMING: 'bg-red-100 text-red-800',
       OVERDUE: 'bg-red-100 text-red-800',
       CUSTOM: 'bg-purple-100 text-purple-800',
     };
@@ -183,7 +183,7 @@ export function AlertsPage() {
               setSearch(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
           />
           <select
             value={typeFilter}
@@ -191,7 +191,7 @@ export function AlertsPage() {
               setTypeFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
           >
             <option value="">Todos los tipos</option>
             <option value="UPCOMING">Próximo</option>
@@ -204,7 +204,7 @@ export function AlertsPage() {
               setSeverityFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
           >
             <option value="">Todas las severidades</option>
             <option value="LOW">Baja</option>
@@ -218,7 +218,7 @@ export function AlertsPage() {
               setReadFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
           >
             <option value="">Todas</option>
             <option value="false">No leídas</option>
@@ -260,7 +260,7 @@ export function AlertsPage() {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {alerts.map((alert) => (
-                <tr key={alert.id} className={`hover:bg-gray-50 ${!alert.isRead ? 'bg-blue-50' : ''}`}>
+                <tr key={alert.id} className={`hover:bg-gray-50 ${!alert.isRead ? 'bg-red-50' : ''}`}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="font-medium">{alert.machine?.code}</div>
                     <div className="text-sm text-gray-500">{alert.machine?.name}</div>
@@ -323,7 +323,7 @@ export function AlertsPage() {
                       onClick={() => setCurrentPage(page)}
                       className={`px-3 py-1 border rounded ${
                         currentPage === page
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-red-600 text-white'
                           : 'bg-white text-gray-700 hover:bg-gray-50'
                       }`}
                     >

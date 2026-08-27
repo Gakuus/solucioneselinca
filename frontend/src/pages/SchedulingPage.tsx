@@ -95,7 +95,7 @@ export function SchedulingPage() {
 
   const getFrequencyBadge = (frequency: string) => {
     const styles: Record<string, string> = {
-      DAILY: 'bg-blue-100 text-blue-800',
+      DAILY: 'bg-red-100 text-red-800',
       WEEKLY: 'bg-green-100 text-green-800',
       MONTHLY: 'bg-yellow-100 text-yellow-800',
       QUARTERLY: 'bg-orange-100 text-orange-800',
@@ -129,7 +129,7 @@ export function SchedulingPage() {
               setSelectedSchedule(null);
               setIsFormOpen(true);
             }}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
           >
             + Nueva Programación
           </button>
@@ -156,7 +156,7 @@ export function SchedulingPage() {
               setSearch(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
           />
           <select
             value={frequencyFilter}
@@ -164,7 +164,7 @@ export function SchedulingPage() {
               setFrequencyFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
           >
             <option value="">Todas las frecuencias</option>
             <option value="DAILY">Diario</option>
@@ -179,7 +179,7 @@ export function SchedulingPage() {
               setActiveFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
           >
             <option value="">Todos los estados</option>
             <option value="true">Activos</option>
@@ -254,7 +254,7 @@ export function SchedulingPage() {
                             setSelectedSchedule(schedule);
                             setIsFormOpen(true);
                           }}
-                          className="text-blue-600 hover:text-blue-900 mr-3"
+                          className="text-red-600 hover:text-red-900 mr-3"
                         >
                           Editar
                         </button>
@@ -304,7 +304,7 @@ export function SchedulingPage() {
                       onClick={() => setCurrentPage(page)}
                       className={`px-3 py-1 border rounded ${
                         currentPage === page
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-red-600 text-white'
                           : 'bg-white text-gray-700 hover:bg-gray-50'
                       }`}
                     >
@@ -411,7 +411,7 @@ function ScheduleFormModal({
             <select
               value={formData.machineId}
               onChange={(e) => setFormData({ ...formData, machineId: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               required
             >
               <option value="">Seleccionar máquina</option>
@@ -428,7 +428,7 @@ function ScheduleFormModal({
             <select
               value={formData.maintenanceTypeId}
               onChange={(e) => setFormData({ ...formData, maintenanceTypeId: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               required
             >
               <option value="">Seleccionar tipo</option>
@@ -446,7 +446,7 @@ function ScheduleFormModal({
               <select
                 value={formData.frequency}
                 onChange={(e) => setFormData({ ...formData, frequency: e.target.value as any })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               >
                 <option value="DAILY">Diario</option>
                 <option value="WEEKLY">Semanal</option>
@@ -461,7 +461,7 @@ function ScheduleFormModal({
                 type="number"
                 value={formData.interval}
                 onChange={(e) => setFormData({ ...formData, interval: parseInt(e.target.value) })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                 min="1"
                 required
               />
@@ -475,7 +475,7 @@ function ScheduleFormModal({
                 type="date"
                 value={formData.startDate}
                 onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                 required
               />
             </div>
@@ -485,7 +485,7 @@ function ScheduleFormModal({
                 type="date"
                 value={formData.endDate}
                 onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
           </div>
@@ -496,7 +496,7 @@ function ScheduleFormModal({
               type="date"
               value={formData.nextExecution}
               onChange={(e) => setFormData({ ...formData, nextExecution: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               required
             />
           </div>
@@ -506,7 +506,7 @@ function ScheduleFormModal({
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               rows={2}
             />
           </div>
@@ -534,7 +534,7 @@ function ScheduleFormModal({
             <button
               type="submit"
               disabled={isLoading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
             >
               {isLoading ? 'Guardando...' : 'Guardar'}
             </button>

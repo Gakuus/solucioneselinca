@@ -89,7 +89,7 @@ export function MaintenancesPage() {
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      SCHEDULED: 'bg-blue-100 text-blue-800',
+      SCHEDULED: 'bg-red-100 text-red-800',
       IN_PROGRESS: 'bg-yellow-100 text-yellow-800',
       COMPLETED: 'bg-green-100 text-green-800',
       CANCELLED: 'bg-red-100 text-red-800',
@@ -122,7 +122,7 @@ export function MaintenancesPage() {
               setSelectedMaintenance(null);
               setIsFormOpen(true);
             }}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
           >
             + Nuevo Mantenimiento
           </button>
@@ -146,7 +146,7 @@ export function MaintenancesPage() {
             <div className="text-sm text-gray-500">Total</div>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-2xl font-bold text-blue-600">{stats.scheduled}</div>
+            <div className="text-2xl font-bold text-red-600">{stats.scheduled}</div>
             <div className="text-sm text-gray-500">Programados</div>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
@@ -183,7 +183,7 @@ export function MaintenancesPage() {
               setSearch(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
           />
           <select
             value={statusFilter}
@@ -191,7 +191,7 @@ export function MaintenancesPage() {
               setStatusFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
           >
             <option value="">Todos los estados</option>
             <option value="SCHEDULED">Programado</option>
@@ -205,7 +205,7 @@ export function MaintenancesPage() {
               setCategoryFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
           >
             <option value="">Todas las categorías</option>
             <option value="PREVENTIVE">Preventivo</option>
@@ -269,7 +269,7 @@ export function MaintenancesPage() {
                         setSelectedMaintenance(maintenance);
                         setIsDetailOpen(true);
                       }}
-                      className="text-blue-600 hover:text-blue-900 mr-3"
+                      className="text-red-600 hover:text-red-900 mr-3"
                     >
                       Ver
                     </button>
@@ -327,7 +327,7 @@ export function MaintenancesPage() {
                       onClick={() => setCurrentPage(page)}
                       className={`px-3 py-1 border rounded ${
                         currentPage === page
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-red-600 text-white'
                           : 'bg-white text-gray-700 hover:bg-gray-50'
                       }`}
                     >
@@ -534,7 +534,7 @@ function MaintenanceFormModal({
               <select
                 value={formData.machineId}
                 onChange={(e) => setFormData({ ...formData, machineId: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                 required
                 disabled={isEditing}
               >
@@ -552,7 +552,7 @@ function MaintenanceFormModal({
               <select
                 value={formData.maintenanceTypeId}
                 onChange={(e) => setFormData({ ...formData, maintenanceTypeId: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                 required
               >
                 <option value="">Seleccionar tipo</option>
@@ -569,7 +569,7 @@ function MaintenanceFormModal({
               <select
                 value={formData.technicianId}
                 onChange={(e) => setFormData({ ...formData, technicianId: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                 required
               >
                 <option value="">Seleccionar técnico</option>
@@ -587,7 +587,7 @@ function MaintenanceFormModal({
                 type="date"
                 value={formData.receivedDate}
                 onChange={(e) => setFormData({ ...formData, receivedDate: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                 required
               />
             </div>
@@ -598,7 +598,7 @@ function MaintenanceFormModal({
                 type="number"
                 value={formData.currentHours}
                 onChange={(e) => setFormData({ ...formData, currentHours: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                 min="0"
                 step="0.1"
                 required
@@ -611,7 +611,7 @@ function MaintenanceFormModal({
                 type="number"
                 value={formData.hoursUntilNext}
                 onChange={(e) => setFormData({ ...formData, hoursUntilNext: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                 min="0"
                 step="1"
               />
@@ -623,7 +623,7 @@ function MaintenanceFormModal({
                 type="date"
                 value={formData.nextMaintenanceDate}
                 onChange={(e) => setFormData({ ...formData, nextMaintenanceDate: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
 
@@ -633,7 +633,7 @@ function MaintenanceFormModal({
                 type="date"
                 value={formData.estimatedNextDate}
                 onChange={(e) => setFormData({ ...formData, estimatedNextDate: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
           </div>
@@ -643,7 +643,7 @@ function MaintenanceFormModal({
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               rows={3}
               required
             />
@@ -654,7 +654,7 @@ function MaintenanceFormModal({
             <textarea
               value={formData.observations}
               onChange={(e) => setFormData({ ...formData, observations: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               rows={2}
             />
           </div>
@@ -666,7 +666,7 @@ function MaintenanceFormModal({
               <button
                 type="button"
                 onClick={addItem}
-                className="text-sm text-blue-600 hover:text-blue-800"
+                className="text-sm text-red-600 hover:text-red-800"
               >
                 + Agregar Ítem
               </button>
@@ -682,7 +682,7 @@ function MaintenanceFormModal({
                         placeholder="Nombre"
                         value={item.name}
                         onChange={(e) => updateItem(index, 'name', e.target.value)}
-                        className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-red-500"
                       />
                     </div>
                     <div className="col-span-1">
@@ -691,7 +691,7 @@ function MaintenanceFormModal({
                         placeholder="Cant."
                         value={item.quantity}
                         onChange={(e) => updateItem(index, 'quantity', e.target.value)}
-                        className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-red-500"
                         min="1"
                       />
                     </div>
@@ -701,7 +701,7 @@ function MaintenanceFormModal({
                         placeholder="Costo"
                         value={item.unitCost}
                         onChange={(e) => updateItem(index, 'unitCost', e.target.value)}
-                        className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-red-500"
                         min="0"
                         step="0.01"
                       />
@@ -712,7 +712,7 @@ function MaintenanceFormModal({
                         placeholder="Proveedor"
                         value={item.supplier}
                         onChange={(e) => updateItem(index, 'supplier', e.target.value)}
-                        className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-red-500"
                       />
                     </div>
                     <div className="col-span-3">
@@ -721,7 +721,7 @@ function MaintenanceFormModal({
                         placeholder="Categoría"
                         value={item.category}
                         onChange={(e) => updateItem(index, 'category', e.target.value)}
-                        className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-red-500"
                       />
                     </div>
                     <div className="col-span-1">
@@ -750,7 +750,7 @@ function MaintenanceFormModal({
             <button
               type="submit"
               disabled={isSaving}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
             >
               {isSaving ? 'Guardando...' : isEditing ? 'Actualizar' : 'Crear'}
             </button>
@@ -818,7 +818,7 @@ function StatusChangeModal({
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                 required
               >
                 <option value="">Seleccionar estado</option>
@@ -839,7 +839,7 @@ function StatusChangeModal({
                   type="number"
                   value={completedHours}
                   onChange={(e) => setCompletedHours(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                   min="0"
                   step="0.1"
                   required
@@ -855,7 +855,7 @@ function StatusChangeModal({
                 <textarea
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                   rows={3}
                   required
                 />
@@ -869,7 +869,7 @@ function StatusChangeModal({
               <textarea
                 value={observations}
                 onChange={(e) => setObservations(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                 rows={2}
               />
             </div>
@@ -885,7 +885,7 @@ function StatusChangeModal({
               <button
                 type="submit"
                 disabled={!status}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
               >
                 Cambiar Estado
               </button>

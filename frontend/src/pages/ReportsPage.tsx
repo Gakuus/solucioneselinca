@@ -96,7 +96,7 @@ export function ReportsPage() {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
             />
           </div>
           <div>
@@ -105,14 +105,14 @@ export function ReportsPage() {
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
             />
           </div>
           <div className="flex items-end">
             <button
               onClick={loadReport}
               disabled={isLoading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
             >
               {isLoading ? 'Cargando...' : 'Generar Reporte'}
             </button>
@@ -128,7 +128,7 @@ export function ReportsPage() {
               onClick={() => setActiveTab('maintenance')}
               className={`border-b-2 py-4 text-sm font-medium ${
                 activeTab === 'maintenance'
-                  ? 'border-blue-600 text-blue-600'
+                  ? 'border-red-600 text-red-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -138,7 +138,7 @@ export function ReportsPage() {
               onClick={() => setActiveTab('machine')}
               className={`border-b-2 py-4 text-sm font-medium ${
                 activeTab === 'machine'
-                  ? 'border-blue-600 text-blue-600'
+                  ? 'border-red-600 text-red-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -148,7 +148,7 @@ export function ReportsPage() {
               onClick={() => setActiveTab('technician')}
               className={`border-b-2 py-4 text-sm font-medium ${
                 activeTab === 'technician'
-                  ? 'border-blue-600 text-blue-600'
+                  ? 'border-red-600 text-red-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -158,7 +158,7 @@ export function ReportsPage() {
               onClick={() => setActiveTab('cost')}
               className={`border-b-2 py-4 text-sm font-medium ${
                 activeTab === 'cost'
-                  ? 'border-blue-600 text-blue-600'
+                  ? 'border-red-600 text-red-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -194,8 +194,8 @@ function MaintenanceReportView({ report }: { report: MaintenanceReport }) {
           <div className="text-2xl font-bold">{report.stats.total}</div>
           <div className="text-sm text-gray-500">Total</div>
         </div>
-        <div className="bg-blue-50 rounded-lg p-4">
-          <div className="text-2xl font-bold text-blue-600">{report.stats.byStatus.scheduled}</div>
+        <div className="bg-red-50 rounded-lg p-4">
+          <div className="text-2xl font-bold text-red-600">{report.stats.byStatus.scheduled}</div>
           <div className="text-sm text-gray-500">Programados</div>
         </div>
         <div className="bg-green-50 rounded-lg p-4">
@@ -331,8 +331,8 @@ function CostReportView({ report }: { report: CostReport }) {
           <div className="text-2xl font-bold">${report.totalCost.toFixed(2)}</div>
           <div className="text-sm text-gray-500">Costo Total</div>
         </div>
-        <div className="bg-blue-50 rounded-lg p-4">
-          <div className="text-2xl font-bold text-blue-600">${report.byCategory.preventive.toFixed(2)}</div>
+        <div className="bg-red-50 rounded-lg p-4">
+          <div className="text-2xl font-bold text-red-600">${report.byCategory.preventive.toFixed(2)}</div>
           <div className="text-sm text-gray-500">Preventivos</div>
         </div>
         <div className="bg-orange-50 rounded-lg p-4">

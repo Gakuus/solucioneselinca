@@ -29,7 +29,7 @@ export function DashboardPage() {
         <select
           value={period}
           onChange={(e) => setPeriod(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
         >
           <option value="week">Última Semana</option>
           <option value="month">Último Mes</option>
@@ -62,7 +62,7 @@ export function DashboardPage() {
               <div className="text-sm text-gray-500">Activas</div>
             </div>
             <div className="bg-white rounded-lg shadow p-4">
-              <div className="text-2xl font-bold text-blue-600">{stats.totalMaintenances}</div>
+              <div className="text-2xl font-bold text-red-600">{stats.totalMaintenances}</div>
               <div className="text-sm text-gray-500">Mantenimientos</div>
             </div>
             <div className="bg-white rounded-lg shadow p-4">
@@ -100,7 +100,7 @@ export function DashboardPage() {
                               ? 'bg-green-100 text-green-800'
                               : maintenance.status === 'IN_PROGRESS'
                               ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-blue-100 text-blue-800'
+                              : 'bg-red-100 text-red-800'
                           }`}
                         >
                           {maintenance.status}
@@ -138,7 +138,7 @@ export function DashboardPage() {
                               : status === 'IN_PROGRESS'
                               ? 'bg-yellow-500'
                               : status === 'SCHEDULED'
-                              ? 'bg-blue-500'
+                              ? 'bg-red-500'
                               : 'bg-red-500'
                           }`}
                           style={{

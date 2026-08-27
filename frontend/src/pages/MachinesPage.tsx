@@ -134,7 +134,7 @@ export function MachinesPage() {
                 setSelectedMachine(null);
                 alert('Formulario de creación no disponible aún');
               }}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
             >
               + Nueva Máquina
             </button>
@@ -162,7 +162,7 @@ export function MachinesPage() {
               setSearch(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
           />
           <select
             value={statusFilter}
@@ -170,7 +170,7 @@ export function MachinesPage() {
               setStatusFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
           >
             <option value="">Todos los estados</option>
             <option value="ACTIVE">Activa</option>
@@ -184,7 +184,7 @@ export function MachinesPage() {
               setTypeFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
           >
             <option value="">Todos los tipos</option>
             {machineTypes.map((type) => (
@@ -234,7 +234,7 @@ export function MachinesPage() {
                   <td className="px-6 py-4 whitespace-nowrap">{machine.brand || '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(machine.status)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <button className="text-blue-600 hover:text-blue-900 mr-3">Ver</button>
+                    <button className="text-red-600 hover:text-red-900 mr-3">Ver</button>
                     {canEdit && (
                       <>
                         <button
@@ -305,7 +305,7 @@ export function MachinesPage() {
                       onClick={() => setCurrentPage(page)}
                       className={`px-3 py-1 border rounded ${
                         currentPage === page
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-red-600 text-white'
                           : 'bg-white text-gray-700 hover:bg-gray-50'
                       }`}
                     >
@@ -384,7 +384,7 @@ function StatusChangeModal({
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                 required
               >
                 <option value="">Seleccionar estado</option>
@@ -404,7 +404,7 @@ function StatusChangeModal({
                 <textarea
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                   rows={3}
                   required
                 />
@@ -422,7 +422,7 @@ function StatusChangeModal({
               <button
                 type="submit"
                 disabled={!status}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
               >
                 Cambiar Estado
               </button>

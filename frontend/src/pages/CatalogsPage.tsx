@@ -31,7 +31,7 @@ export function CatalogsPage() {
               onClick={() => setActiveTab('machine-types')}
               className={`border-b-2 py-4 text-sm font-medium ${
                 activeTab === 'machine-types'
-                  ? 'border-blue-600 text-blue-600'
+                  ? 'border-red-600 text-red-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -41,7 +41,7 @@ export function CatalogsPage() {
               onClick={() => setActiveTab('maintenance-types')}
               className={`border-b-2 py-4 text-sm font-medium ${
                 activeTab === 'maintenance-types'
-                  ? 'border-blue-600 text-blue-600'
+                  ? 'border-red-600 text-red-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -101,7 +101,7 @@ function MachineTypesTab() {
             setSelectedType(null);
             setIsFormOpen(true);
           }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
         >
           + Nuevo Tipo
         </button>
@@ -148,7 +148,7 @@ function MachineTypesTab() {
                         setSelectedType(type);
                         setIsFormOpen(true);
                       }}
-                      className="text-blue-600 hover:text-blue-900 mr-3"
+                      className="text-red-600 hover:text-red-900 mr-3"
                     >
                       Editar
                     </button>
@@ -240,7 +240,7 @@ function MachineTypeFormModal({
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               required
             />
           </div>
@@ -250,7 +250,7 @@ function MachineTypeFormModal({
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               rows={3}
             />
           </div>
@@ -278,7 +278,7 @@ function MachineTypeFormModal({
             <button
               type="submit"
               disabled={isLoading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
             >
               {isLoading ? 'Guardando...' : 'Guardar'}
             </button>
@@ -331,7 +331,7 @@ function MaintenanceTypesTab() {
             setSelectedType(null);
             setIsFormOpen(true);
           }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
         >
           + Nuevo Tipo
         </button>
@@ -364,7 +364,7 @@ function MaintenanceTypesTab() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
                       className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        type.isPreventive ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'
+                        type.isPreventive ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'
                       }`}
                     >
                       {type.isPreventive ? 'Preventivo' : 'Correctivo'}
@@ -382,7 +382,7 @@ function MaintenanceTypesTab() {
                         setSelectedType(type);
                         setIsFormOpen(true);
                       }}
-                      className="text-blue-600 hover:text-blue-900 mr-3"
+                      className="text-red-600 hover:text-red-900 mr-3"
                     >
                       Editar
                     </button>
@@ -481,7 +481,7 @@ function MaintenanceTypeFormModal({
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               required
             />
           </div>
@@ -491,7 +491,7 @@ function MaintenanceTypeFormModal({
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               rows={3}
             />
           </div>
@@ -501,7 +501,7 @@ function MaintenanceTypeFormModal({
             <select
               value={formData.isPreventive ? 'true' : 'false'}
               onChange={(e) => setFormData({ ...formData, isPreventive: e.target.value === 'true' })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
             >
               <option value="true">Preventivo</option>
               <option value="false">Correctivo</option>
@@ -514,7 +514,7 @@ function MaintenanceTypeFormModal({
               type="number"
               value={formData.estimatedHours}
               onChange={(e) => setFormData({ ...formData, estimatedHours: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               min="0"
               step="0.5"
             />
@@ -543,7 +543,7 @@ function MaintenanceTypeFormModal({
             <button
               type="submit"
               disabled={isLoading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
             >
               {isLoading ? 'Guardando...' : 'Guardar'}
             </button>
