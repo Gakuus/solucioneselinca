@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { machinesApi, Machine, MachineType } from '../services/machines';
 import { useAuthStore } from '../stores/authStore';
+import { useToast } from '../components/ui/toast';
+import { ConfirmDialog } from '../components/ui/confirm-dialog';
 
 export function MachinesPage() {
   const [machines, setMachines] = useState<Machine[]>([]);
@@ -14,7 +16,9 @@ export function MachinesPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string }>({ open: false, id: '' });
   const { user } = useAuthStore();
+  const { toast } = useToast();
 
   useEffect(() => {
     loadMachines();
@@ -50,13 +54,13 @@ export function MachinesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar esta máquina?')) return;
-
     try {
       await machinesApi.delete(id);
+      setDeleteConfirm({ open: false, id: '' });
+      toast('success', 'Máquina eliminada correctamente');
       loadMachines();
     } catch (err: any) {
-      setError(err.message || 'Error al eliminar máquina');
+      toast('error', err.message || 'Error al eliminar máquina');
     }
   };
 
@@ -74,8 +78,9 @@ export function MachinesPage() {
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
+      toast('success', 'CSV exportado correctamente');
     } catch (err: any) {
-      setError(err.message || 'Error al exportar');
+      toast('error', err.message || 'Error al exportar');
     }
   };
 
@@ -86,9 +91,10 @@ export function MachinesPage() {
       await machinesApi.changeStatus(selectedMachine.id, newStatus, reason);
       setIsStatusModalOpen(false);
       setSelectedMachine(null);
+      toast('success', 'Estado actualizado correctamente');
       loadMachines();
     } catch (err: any) {
-      setError(err.message || 'Error al cambiar estado');
+      toast('error', err.message || 'Error al cambiar estado');
     }
   };
 
@@ -263,7 +269,7 @@ export function MachinesPage() {
                     )}
                     {canDelete && (
                       <button
-                        onClick={() => handleDelete(machine.id)}
+                        onClick={() => setDeleteConfirm({ open: true, id: machine.id })}
                         className="text-red-600 hover:text-red-900"
                       >
                         Eliminar
@@ -336,6 +342,17 @@ export function MachinesPage() {
           onChange={handleStatusChange}
         />
       )}
+
+      {/* Delete Confirm */}
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        title="Eliminar máquina"
+        message="¿Estás seguro de eliminar esta máquina? Esta acción no se puede deshacer."
+        confirmLabel="Eliminar"
+        variant="danger"
+        onConfirm={() => handleDelete(deleteConfirm.id)}
+        onCancel={() => setDeleteConfirm({ open: false, id: '' })}
+      />
     </div>
   );
 }

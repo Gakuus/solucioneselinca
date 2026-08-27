@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { alertsApi, Alert, AlertStats } from '../services/alerts';
+import { useToast } from '../components/ui/toast';
+import { ConfirmDialog } from '../components/ui/confirm-dialog';
 
 export function AlertsPage() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -13,7 +15,9 @@ export function AlertsPage() {
   const [readFilter, setReadFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string }>({ open: false, id: '' });
   const { user } = useAuthStore();
+  const { toast } = useToast();
 
   useEffect(() => {
     loadAlerts();
@@ -52,32 +56,34 @@ export function AlertsPage() {
   const handleMarkAsRead = async (id: string) => {
     try {
       await alertsApi.markAsRead(id);
+      toast('success', 'Alerta marcada como leída');
       loadAlerts();
       loadStats();
     } catch (err: any) {
-      setError(err.message || 'Error al marcar como leída');
+      toast('error', err.message || 'Error al marcar como leída');
     }
   };
 
   const handleMarkAllAsRead = async () => {
     try {
       await alertsApi.markAllAsRead();
+      toast('success', 'Todas las alertas marcadas como leídas');
       loadAlerts();
       loadStats();
     } catch (err: any) {
-      setError(err.message || 'Error al marcar todas como leídas');
+      toast('error', err.message || 'Error al marcar todas como leídas');
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar esta alerta?')) return;
-
     try {
       await alertsApi.delete(id);
+      setDeleteConfirm({ open: false, id: '' });
+      toast('success', 'Alerta eliminada correctamente');
       loadAlerts();
       loadStats();
     } catch (err: any) {
-      setError(err.message || 'Error al eliminar alerta');
+      toast('error', err.message || 'Error al eliminar alerta');
     }
   };
 
@@ -290,7 +296,7 @@ export function AlertsPage() {
                     )}
                     {isAdmin && (
                       <button
-                        onClick={() => handleDelete(alert.id)}
+                        onClick={() => setDeleteConfirm({ open: true, id: alert.id })}
                         className="text-red-600 hover:text-red-900"
                       >
                         Eliminar
@@ -344,6 +350,17 @@ export function AlertsPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirm */}
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        title="Eliminar alerta"
+        message="¿Estás seguro de eliminar esta alerta? Esta acción no se puede deshacer."
+        confirmLabel="Eliminar"
+        variant="danger"
+        onConfirm={() => handleDelete(deleteConfirm.id)}
+        onCancel={() => setDeleteConfirm({ open: false, id: '' })}
+      />
     </div>
   );
 }

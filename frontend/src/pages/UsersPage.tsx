@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { usersApi, User } from '../services/users';
 import { useAuthStore } from '../stores/authStore';
+import { useToast } from '../components/ui/toast';
+import { ConfirmDialog } from '../components/ui/confirm-dialog';
 
 export function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -12,7 +14,9 @@ export function UsersPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string }>({ open: false, id: '' });
   const { user: currentUser } = useAuthStore();
+  const { toast } = useToast();
 
   useEffect(() => {
     loadUsers();
@@ -37,22 +41,23 @@ export function UsersPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar este usuario?')) return;
-
     try {
       await usersApi.delete(id);
+      setDeleteConfirm({ open: false, id: '' });
+      toast('success', 'Usuario eliminado correctamente');
       loadUsers();
     } catch (err: any) {
-      setError(err.message || 'Error al eliminar usuario');
+      toast('error', err.message || 'Error al eliminar usuario');
     }
   };
 
   const handleToggleActive = async (user: User) => {
     try {
       await usersApi.update(user.id, { isActive: !user.isActive });
+      toast('success', `Usuario ${user.isActive ? 'desactivado' : 'activado'} correctamente`);
       loadUsers();
     } catch (err: any) {
-      setError(err.message || 'Error al actualizar usuario');
+      toast('error', err.message || 'Error al actualizar usuario');
     }
   };
 
@@ -212,7 +217,7 @@ export function UsersPage() {
                       </button>
                       {user.id !== currentUser?.id && (
                         <button
-                          onClick={() => handleDelete(user.id)}
+                          onClick={() => setDeleteConfirm({ open: true, id: user.id })}
                           className="text-red-600 hover:text-red-900"
                         >
                           Eliminar
@@ -280,10 +285,22 @@ export function UsersPage() {
           onSave={() => {
             setIsFormOpen(false);
             setSelectedUser(null);
+            toast('success', selectedUser ? 'Usuario actualizado correctamente' : 'Usuario creado correctamente');
             loadUsers();
           }}
         />
       )}
+
+      {/* Delete Confirm */}
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        title="Eliminar usuario"
+        message="¿Estás seguro de eliminar este usuario? Esta acción no se puede deshacer."
+        confirmLabel="Eliminar"
+        variant="danger"
+        onConfirm={() => handleDelete(deleteConfirm.id)}
+        onCancel={() => setDeleteConfirm({ open: false, id: '' })}
+      />
     </div>
   );
 }

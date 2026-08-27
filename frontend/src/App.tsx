@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastProvider } from './components/ui/toast';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { MachinesPage } from './pages/MachinesPage';
@@ -16,65 +17,67 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute';
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <MainLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="machines" element={<MachinesPage />} />
-          <Route path="maintenances" element={<MaintenancesPage />} />
+      <ToastProvider>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
           <Route
-            path="scheduling"
+            path="/"
             element={
-              <ProtectedRoute requiredRoles={['ADMIN', 'SUPERVISOR', 'TECHNICIAN']}>
-                <SchedulingPage />
+              <ProtectedRoute>
+                <MainLayout />
               </ProtectedRoute>
             }
-          />
-          <Route path="reports" element={<ReportsPage />} />
-          <Route path="alerts" element={<AlertsPage />} />
-          <Route
-            path="users"
-            element={
-              <ProtectedRoute requiredRole="ADMIN">
-                <UsersPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="audit"
-            element={
-              <ProtectedRoute requiredRole="ADMIN">
-                <AuditPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="catalogs"
-            element={
-              <ProtectedRoute requiredRole="ADMIN">
-                <CatalogsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="config"
-            element={
-              <ProtectedRoute requiredRole="ADMIN">
-                <ConfigPage />
-              </ProtectedRoute>
-            }
-          />
-        </Route>
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
+          >
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="machines" element={<MachinesPage />} />
+            <Route path="maintenances" element={<MaintenancesPage />} />
+            <Route
+              path="scheduling"
+              element={
+                <ProtectedRoute requiredRoles={['ADMIN', 'SUPERVISOR', 'TECHNICIAN']}>
+                  <SchedulingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="reports" element={<ReportsPage />} />
+            <Route path="alerts" element={<AlertsPage />} />
+            <Route
+              path="users"
+              element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <UsersPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="audit"
+              element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <AuditPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="catalogs"
+              element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <CatalogsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="config"
+              element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <ConfigPage />
+                </ProtectedRoute>
+              }
+            />
+          </Route>
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </ToastProvider>
     </BrowserRouter>
   );
 }

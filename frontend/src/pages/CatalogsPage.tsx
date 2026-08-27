@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { catalogsApi, MachineType, MaintenanceType } from '../services/catalogs';
 import { useAuthStore } from '../stores/authStore';
+import { useToast } from '../components/ui/toast';
+import { ConfirmDialog } from '../components/ui/confirm-dialog';
 
 export function CatalogsPage() {
   const [activeTab, setActiveTab] = useState<'machine-types' | 'maintenance-types'>('machine-types');
@@ -64,6 +66,8 @@ function MachineTypesTab() {
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<MachineType | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string }>({ open: false, id: '' });
+  const { toast } = useToast();
 
   useEffect(() => {
     loadTypes();
@@ -82,13 +86,13 @@ function MachineTypesTab() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar este tipo?')) return;
-
     try {
       await catalogsApi.deleteMachineType(id);
+      setDeleteConfirm({ open: false, id: '' });
+      toast('success', 'Tipo de máquina eliminado correctamente');
       loadTypes();
     } catch (error: any) {
-      alert(error.message || 'Error al eliminar');
+      toast('error', error.message || 'Error al eliminar');
     }
   };
 
@@ -153,7 +157,7 @@ function MachineTypesTab() {
                       Editar
                     </button>
                     <button
-                      onClick={() => handleDelete(type.id)}
+                      onClick={() => setDeleteConfirm({ open: true, id: type.id })}
                       className="text-red-600 hover:text-red-900"
                     >
                       Eliminar
@@ -176,10 +180,21 @@ function MachineTypesTab() {
           onSave={() => {
             setIsFormOpen(false);
             setSelectedType(null);
+            toast('success', selectedType ? 'Tipo actualizado correctamente' : 'Tipo creado correctamente');
             loadTypes();
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        title="Eliminar tipo de máquina"
+        message="¿Estás seguro de eliminar este tipo? Esta acción no se puede deshacer."
+        confirmLabel="Eliminar"
+        variant="danger"
+        onConfirm={() => handleDelete(deleteConfirm.id)}
+        onCancel={() => setDeleteConfirm({ open: false, id: '' })}
+      />
     </div>
   );
 }
@@ -294,6 +309,8 @@ function MaintenanceTypesTab() {
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<MaintenanceType | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string }>({ open: false, id: '' });
+  const { toast } = useToast();
 
   useEffect(() => {
     loadTypes();
@@ -312,13 +329,13 @@ function MaintenanceTypesTab() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar este tipo?')) return;
-
     try {
       await catalogsApi.deleteMaintenanceType(id);
+      setDeleteConfirm({ open: false, id: '' });
+      toast('success', 'Tipo de mantenimiento eliminado correctamente');
       loadTypes();
     } catch (error: any) {
-      alert(error.message || 'Error al eliminar');
+      toast('error', error.message || 'Error al eliminar');
     }
   };
 
@@ -387,7 +404,7 @@ function MaintenanceTypesTab() {
                       Editar
                     </button>
                     <button
-                      onClick={() => handleDelete(type.id)}
+                      onClick={() => setDeleteConfirm({ open: true, id: type.id })}
                       className="text-red-600 hover:text-red-900"
                     >
                       Eliminar
@@ -410,10 +427,21 @@ function MaintenanceTypesTab() {
           onSave={() => {
             setIsFormOpen(false);
             setSelectedType(null);
+            toast('success', selectedType ? 'Tipo actualizado correctamente' : 'Tipo creado correctamente');
             loadTypes();
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        title="Eliminar tipo de mantenimiento"
+        message="¿Estás seguro de eliminar este tipo? Esta acción no se puede deshacer."
+        confirmLabel="Eliminar"
+        variant="danger"
+        onConfirm={() => handleDelete(deleteConfirm.id)}
+        onCancel={() => setDeleteConfirm({ open: false, id: '' })}
+      />
     </div>
   );
 }

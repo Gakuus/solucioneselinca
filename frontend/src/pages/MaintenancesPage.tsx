@@ -4,6 +4,8 @@ import { maintenancesApi, Maintenance, MaintenanceStats } from '../services/main
 import { catalogsApi, MaintenanceType } from '../services/catalogs';
 import { machinesApi, Machine } from '../services/machines';
 import { usersApi, User } from '../services/users';
+import { useToast } from '../components/ui/toast';
+import { ConfirmDialog } from '../components/ui/confirm-dialog';
 
 export function MaintenancesPage() {
   const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
@@ -19,7 +21,9 @@ export function MaintenancesPage() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string }>({ open: false, id: '' });
   const { user } = useAuthStore();
+  const { toast } = useToast();
 
   useEffect(() => {
     loadMaintenances();
@@ -55,14 +59,14 @@ export function MaintenancesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar este mantenimiento?')) return;
-
     try {
       await maintenancesApi.delete(id);
+      setDeleteConfirm({ open: false, id: '' });
+      toast('success', 'Mantenimiento eliminado correctamente');
       loadMaintenances();
       loadStats();
     } catch (err: any) {
-      setError(err.message || 'Error al eliminar mantenimiento');
+      toast('error', err.message || 'Error al eliminar mantenimiento');
     }
   };
 
@@ -73,16 +77,18 @@ export function MaintenancesPage() {
       await maintenancesApi.changeStatus(selectedMaintenance.id, status, reason, completedHours, observations);
       setIsStatusModalOpen(false);
       setSelectedMaintenance(null);
+      toast('success', 'Estado actualizado correctamente');
       loadMaintenances();
       loadStats();
     } catch (err: any) {
-      setError(err.message || 'Error al cambiar estado');
+      toast('error', err.message || 'Error al cambiar estado');
     }
   };
 
   const handleSave = () => {
     setIsFormOpen(false);
     setSelectedMaintenance(null);
+    toast('success', 'Mantenimiento guardado correctamente');
     loadMaintenances();
     loadStats();
   };
@@ -300,7 +306,7 @@ export function MaintenancesPage() {
                     )}
                     {canDelete && maintenance.status === 'SCHEDULED' && (
                       <button
-                        onClick={() => handleDelete(maintenance.id)}
+                        onClick={() => setDeleteConfirm({ open: true, id: maintenance.id })}
                         className="text-red-600 hover:text-red-900"
                       >
                         Eliminar
@@ -390,6 +396,17 @@ export function MaintenancesPage() {
           }}
         />
       )}
+
+      {/* Delete Confirm */}
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        title="Eliminar mantenimiento"
+        message="¿Estás seguro de eliminar este mantenimiento? Esta acción no se puede deshacer."
+        confirmLabel="Eliminar"
+        variant="danger"
+        onConfirm={() => handleDelete(deleteConfirm.id)}
+        onCancel={() => setDeleteConfirm({ open: false, id: '' })}
+      />
     </div>
   );
 }
