@@ -8,7 +8,7 @@ export const createMachineSchema = z.object({
   model: z.string().max(100).optional(),
   year: z.number().int().min(1900).max(new Date().getFullYear() + 1).optional(),
   serialNumber: z.string().max(100).optional(),
-  status: z.enum(['ACTIVE', 'INACTIVE', 'MAINTENANCE', 'RETIRED']).optional(),
+  status: z.enum(['ACTIVE', 'INACTIVE', 'IN_MAINTENANCE', 'DECOMMISSIONED']).optional(),
   purchaseDate: z.string().optional().refine((val) => !val || !isNaN(Date.parse(val)), {
     message: 'Fecha de compra inválida',
   }),
@@ -25,14 +25,14 @@ export const machineQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   search: z.string().optional(),
-  status: z.enum(['ACTIVE', 'INACTIVE', 'MAINTENANCE', 'RETIRED']).optional(),
+  status: z.enum(['ACTIVE', 'INACTIVE', 'IN_MAINTENANCE', 'DECOMMISSIONED']).optional(),
   machineTypeId: z.string().uuid().optional(),
   sortBy: z.enum(['code', 'name', 'createdAt', 'updatedAt']).default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });
 
 export const changeStatusSchema = z.object({
-  status: z.enum(['ACTIVE', 'INACTIVE', 'MAINTENANCE', 'RETIRED']),
+  status: z.enum(['ACTIVE', 'INACTIVE', 'IN_MAINTENANCE', 'DECOMMISSIONED']),
   reason: z.string().max(500).optional(),
 });
 

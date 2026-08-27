@@ -49,8 +49,8 @@ export interface PaginatedResponse<T> {
 
 export const auditApi = {
   getAll: async (params?: AuditQueryParams): Promise<PaginatedResponse<AuditLog>> => {
-    const response = await api.get<{ data: AuditLog[]; pagination: PaginatedResponse<AuditLog>['pagination'] }>('/audit', { params });
-    return response.data as PaginatedResponse<AuditLog>;
+    const response = await api.get<AuditLog[]>('/audit', { params });
+    return { data: (response.data as AuditLog[]) || [], pagination: response.pagination };
   },
 
   getById: async (id: string): Promise<AuditLog> => {

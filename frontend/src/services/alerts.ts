@@ -66,8 +66,8 @@ export interface PaginatedResponse<T> {
 
 export const alertsApi = {
   getAll: async (params?: AlertQueryParams): Promise<PaginatedResponse<Alert>> => {
-    const response = await api.get<{ data: Alert[]; pagination: PaginatedResponse<Alert>['pagination'] }>('/alerts', { params });
-    return response.data as PaginatedResponse<Alert>;
+    const response = await api.get<Alert[]>('/alerts', { params });
+    return { data: (response.data as Alert[]) || [], pagination: response.pagination };
   },
 
   getById: async (id: string): Promise<Alert> => {

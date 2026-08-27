@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { maintenancesService } from './maintenances.service';
+import { auditService } from '../audit/audit.service';
 import {
   CreateMaintenanceInput,
   UpdateMaintenanceInput,
@@ -34,6 +35,17 @@ export class MaintenancesController {
     try {
       const data = req.body as CreateMaintenanceInput;
       const maintenance = await maintenancesService.create(data);
+
+      await auditService.log({
+        userId: req.user?.userId,
+        action: 'CREATE',
+        entityType: 'Maintenance',
+        entityId: maintenance.id,
+        newValues: { machineId: data.machineId, maintenanceTypeId: data.maintenanceTypeId },
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+
       res.status(201).json({ status: 'success', data: maintenance });
     } catch (error) {
       next(error);
@@ -45,6 +57,17 @@ export class MaintenancesController {
       const { id } = req.params;
       const data = req.body as UpdateMaintenanceInput;
       const maintenance = await maintenancesService.update(id, data);
+
+      await auditService.log({
+        userId: req.user?.userId,
+        action: 'UPDATE',
+        entityType: 'Maintenance',
+        entityId: id,
+        newValues: data,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+
       res.json({ status: 'success', data: maintenance });
     } catch (error) {
       next(error);
@@ -56,6 +79,17 @@ export class MaintenancesController {
       const { id } = req.params;
       const data = req.body as ChangeMaintenanceStatusInput;
       const maintenance = await maintenancesService.changeStatus(id, data);
+
+      await auditService.log({
+        userId: req.user?.userId,
+        action: 'UPDATE',
+        entityType: 'Maintenance',
+        entityId: id,
+        newValues: { status: data.status },
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+
       res.json({ status: 'success', data: maintenance });
     } catch (error) {
       next(error);
@@ -66,6 +100,16 @@ export class MaintenancesController {
     try {
       const { id } = req.params;
       const result = await maintenancesService.delete(id);
+
+      await auditService.log({
+        userId: req.user?.userId,
+        action: 'DELETE',
+        entityType: 'Maintenance',
+        entityId: id,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+
       res.json({ status: 'success', data: result });
     } catch (error) {
       next(error);

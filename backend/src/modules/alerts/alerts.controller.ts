@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { alertsService } from './alerts.service';
+import { auditService } from '../audit/audit.service';
 import { CreateAlertInput, AlertQueryInput } from './alerts.validation';
 
 export class AlertsController {
@@ -27,6 +28,17 @@ export class AlertsController {
     try {
       const data = req.body as CreateAlertInput;
       const alert = await alertsService.create(data);
+
+      await auditService.log({
+        userId: req.user?.userId,
+        action: 'CREATE',
+        entityType: 'Alert',
+        entityId: alert.id,
+        newValues: { machineId: data.machineId, type: data.type, severity: data.severity },
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+
       res.status(201).json({ status: 'success', data: alert });
     } catch (error) {
       next(error);
@@ -64,6 +76,16 @@ export class AlertsController {
     try {
       const { id } = req.params;
       const result = await alertsService.delete(id);
+
+      await auditService.log({
+        userId: req.user?.userId,
+        action: 'DELETE',
+        entityType: 'Alert',
+        entityId: id,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+
       res.json({ status: 'success', data: result });
     } catch (error) {
       next(error);

@@ -223,7 +223,7 @@ export class SchedulingService {
       throw new NotFoundError('Programación no encontrada');
     }
 
-    await prisma.maintenanceSchedule.delete({ where: id });
+    await prisma.maintenanceSchedule.delete({ where: { id } });
     return { message: 'Programación eliminada correctamente' };
   }
 
@@ -242,7 +242,10 @@ export class SchedulingService {
   }
 
   async executeSchedule(id: string, technicianId: string) {
-    const schedule = await prisma.maintenanceSchedule.findUnique({ where: { id } });
+    const schedule = await prisma.maintenanceSchedule.findUnique({
+      where: { id },
+      include: { maintenanceType: true },
+    });
     if (!schedule) {
       throw new NotFoundError('Programación no encontrada');
     }
@@ -258,7 +261,7 @@ export class SchedulingService {
         technicianId,
         receivedDate: new Date(),
         currentHours: 0,
-        description: schedule.description || `Mantenimiento programado: ${schedule.maintenanceType?.name}`,
+        description: schedule.description || `Mantenimiento programado: ${schedule.maintenanceType?.name || schedule.maintenanceTypeId}`,
         status: 'SCHEDULED',
       },
     });

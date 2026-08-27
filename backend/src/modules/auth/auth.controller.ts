@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from './auth.service';
+import { auditService } from '../audit/audit.service';
 import {
   loginSchema,
   registerSchema,
@@ -20,6 +21,16 @@ export class AuthController {
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+
+      await auditService.log({
+        userId: result.user.id,
+        action: 'LOGIN',
+        entityType: 'User',
+        entityId: result.user.id,
+        newValues: { email: data.email },
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
       });
 
       res.json({
@@ -118,6 +129,14 @@ export class AuthController {
 
       if (userId) {
         await authService.logout(userId, token);
+        await auditService.log({
+          userId,
+          action: 'LOGOUT',
+          entityType: 'User',
+          entityId: userId,
+          ipAddress: req.ip,
+          userAgent: req.headers['user-agent'],
+        });
       }
 
       res.clearCookie('refreshToken');

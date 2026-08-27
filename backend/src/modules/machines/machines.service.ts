@@ -109,15 +109,11 @@ export class MachinesService {
         code: data.code,
         name: data.name,
         machineTypeId: data.machineTypeId,
-        brand: data.brand,
-        model: data.model,
+        brand: data.brand || '',
+        model: data.model || '',
         year: data.year,
         serialNumber: data.serialNumber,
         status: data.status || 'ACTIVE',
-        purchaseDate: data.purchaseDate ? new Date(data.purchaseDate) : null,
-        warrantyExpiration: data.warrantyExpiration ? new Date(data.warrantyExpiration) : null,
-        location: data.location,
-        notes: data.notes,
       },
       include: {
         machineType: true,
@@ -168,14 +164,6 @@ export class MachinesService {
         ...(data.model !== undefined && { model: data.model }),
         ...(data.year !== undefined && { year: data.year }),
         ...(data.serialNumber !== undefined && { serialNumber: data.serialNumber }),
-        ...(data.purchaseDate !== undefined && {
-          purchaseDate: data.purchaseDate ? new Date(data.purchaseDate) : null,
-        }),
-        ...(data.warrantyExpiration !== undefined && {
-          warrantyExpiration: data.warrantyExpiration ? new Date(data.warrantyExpiration) : null,
-        }),
-        ...(data.location !== undefined && { location: data.location }),
-        ...(data.notes !== undefined && { notes: data.notes }),
       },
       include: {
         machineType: true,
@@ -252,6 +240,15 @@ export class MachinesService {
     };
   }
 
+  async delete(id: string) {
+    const existing = await prisma.machine.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundError('Máquina no encontrada');
+    }
+    await prisma.machine.delete({ where: { id } });
+    return { message: 'Máquina eliminada exitosamente' };
+  }
+
   async exportCSV(query: Omit<MachineQueryInput, 'page' | 'limit'>) {
     const { search, status, machineTypeId, sortBy, sortOrder } = query;
 
@@ -285,7 +282,7 @@ export class MachinesService {
     });
 
     // Build CSV
-    const headers = ['Código', 'Nombre', 'Tipo', 'Marca', 'Modelo', 'Año', 'Estado', 'Ubicación'];
+    const headers = ['Código', 'Nombre', 'Tipo', 'Marca', 'Modelo', 'Año', 'Estado'];
     const rows = machines.map((m) => [
       m.code,
       m.name,
@@ -294,7 +291,6 @@ export class MachinesService {
       m.model || '',
       m.year?.toString() || '',
       m.status,
-      m.location || '',
     ]);
 
     const csv = [headers.join(','), ...rows.map((r) => r.map((c) => `"${c}"`).join(','))].join('\n');

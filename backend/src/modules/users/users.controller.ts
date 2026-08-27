@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { usersService } from './users.service';
+import { auditService } from '../audit/audit.service';
 import { createUserSchema, updateUserSchema, userQuerySchema } from './users.validation';
 import { ZodError } from 'zod';
 
@@ -44,6 +45,16 @@ export class UsersController {
       const data = createUserSchema.parse(req.body);
       const user = await usersService.create(data);
 
+      await auditService.log({
+        userId: req.user?.userId,
+        action: 'CREATE',
+        entityType: 'User',
+        entityId: user.id,
+        newValues: { name: user.name, email: user.email, role: user.role },
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+
       res.status(201).json({
         status: 'success',
         data: user,
@@ -66,6 +77,16 @@ export class UsersController {
       const data = updateUserSchema.parse(req.body);
       const user = await usersService.update(id, data);
 
+      await auditService.log({
+        userId: req.user?.userId,
+        action: 'UPDATE',
+        entityType: 'User',
+        entityId: id,
+        newValues: data,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+
       res.json({
         status: 'success',
         data: user,
@@ -86,6 +107,15 @@ export class UsersController {
     try {
       const { id } = req.params;
       await usersService.delete(id);
+
+      await auditService.log({
+        userId: req.user?.userId,
+        action: 'DELETE',
+        entityType: 'User',
+        entityId: id,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
 
       res.json({
         status: 'success',
