@@ -43,3 +43,10 @@ export function getConfig(): EnvConfig {
   }
   return config;
 }
+
+// Lazy proxy so env.JWT_SECRET works without calling env()
+export const env = new Proxy({} as EnvConfig, {
+  get(_target, prop) {
+    return (getConfig() as any)[prop];
+  },
+});

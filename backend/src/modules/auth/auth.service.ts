@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../../config/database';
-import { redis } from '../../config/redis';
+import { getRedis } from '../../config/redis';
 import { env } from '../../config/env';
 import {
   UnauthorizedError,
@@ -50,7 +50,7 @@ export class AuthService {
     });
 
     // Store refresh token in Redis
-    await redis.setEx(
+    await getRedis().setex(
       `refresh:${user.id}`,
       REFRESH_TOKEN_EXPIRY_SECONDS,
       tokens.refreshToken
@@ -100,7 +100,7 @@ export class AuthService {
     });
 
     // Store refresh token in Redis
-    await redis.setEx(
+    await getRedis().setex(
       `refresh:${user.id}`,
       REFRESH_TOKEN_EXPIRY_SECONDS,
       tokens.refreshToken
@@ -119,7 +119,7 @@ export class AuthService {
 
   async refreshToken(token: string) {
     // Check if token is blacklisted
-    const isBlacklisted = await redis.get(`${BLACKLIST_PREFIX}${token}`);
+    const isBlacklisted = await getRedis().get(`${BLACKLIST_PREFIX}${token}`);
     if (isBlacklisted) {
       throw new UnauthorizedError('Token inválido');
     }
@@ -132,7 +132,7 @@ export class AuthService {
     }
 
     // Check if refresh token matches stored one
-    const storedToken = await redis.get(`refresh:${payload.userId}`);
+    const storedToken = await getRedis().get(`refresh:${payload.userId}`);
     if (storedToken !== token) {
       throw new UnauthorizedError('Token inválido');
     }
@@ -146,7 +146,7 @@ export class AuthService {
     }
 
     // Blacklist old refresh token
-    await redis.setEx(
+    await getRedis().setex(
       `${BLACKLIST_PREFIX}${token}`,
       REFRESH_TOKEN_EXPIRY_SECONDS,
       'blacklisted'
@@ -160,7 +160,7 @@ export class AuthService {
     });
 
     // Store new refresh token
-    await redis.setEx(
+    await getRedis().setex(
       `refresh:${user.id}`,
       REFRESH_TOKEN_EXPIRY_SECONDS,
       tokens.refreshToken
@@ -171,7 +171,7 @@ export class AuthService {
 
   async logout(userId: string, token?: string) {
     // Remove refresh token from Redis
-    await redis.del(`refresh:${userId}`);
+    await getRedis().del(`refresh:${userId}`);
 
     // Blacklist access token if provided
     if (token) {
@@ -179,7 +179,7 @@ export class AuthService {
       if (decoded?.exp) {
         const ttl = decoded.exp - Math.floor(Date.now() / 1000);
         if (ttl > 0) {
-          await redis.setEx(`${BLACKLIST_PREFIX}${token}`, ttl, 'blacklisted');
+          await getRedis().setex(`${BLACKLIST_PREFIX}${token}`, ttl, 'blacklisted');
         }
       }
     }
@@ -208,7 +208,7 @@ export class AuthService {
     });
 
     // Invalidate all refresh tokens
-    await redis.del(`refresh:${userId}`);
+    await getRedis().del(`refresh:${userId}`);
   }
 
   async getProfile(userId: string) {

@@ -29,7 +29,8 @@ export function errorHandler(
     });
   }
 
-  logger.error('Unhandled error:', error);
+  console.error('Unhandled error:', error.message, error.stack);
+  logger.error('Unhandled error:', error.message);
 
   return res.status(500).json({
     success: false,

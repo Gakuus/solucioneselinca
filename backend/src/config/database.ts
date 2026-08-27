@@ -1,16 +1,16 @@
 import { PrismaClient } from '@prisma/client';
 import { getConfig } from './env';
 
-let prisma: PrismaClient;
+let prismaClient: PrismaClient;
 
 export function getPrisma(): PrismaClient {
-  if (!prisma) {
+  if (!prismaClient) {
     const config = getConfig();
-    prisma = new PrismaClient({
+    prismaClient = new PrismaClient({
       log: config.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
     });
   }
-  return prisma;
+  return prismaClient;
 }
 
 export async function connectDatabase(): Promise<void> {
@@ -25,8 +25,15 @@ export async function connectDatabase(): Promise<void> {
 }
 
 export async function disconnectDatabase(): Promise<void> {
-  if (prisma) {
-    await prisma.$disconnect();
+  if (prismaClient) {
+    await prismaClient.$disconnect();
     console.log('Database disconnected');
   }
 }
+
+// Lazy proxy so `import { prisma }` works without calling getPrisma()
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    return (getPrisma() as any)[prop];
+  },
+});

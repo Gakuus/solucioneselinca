@@ -1,8 +1,9 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
 
 interface ApiResponse<T = any> {
   status: 'success' | 'error';
   data?: T;
+  pagination?: any;
   message?: string;
   errors?: any[];
 }
@@ -12,6 +13,18 @@ class ApiClient {
 
   setAccessToken(token: string | null) {
     this.accessToken = token;
+  }
+
+  private buildQueryString(params?: Record<string, any>): string {
+    if (!params) return '';
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        searchParams.append(key, String(value));
+      }
+    });
+    const qs = searchParams.toString();
+    return qs ? `?${qs}` : '';
   }
 
   private async request<T>(
@@ -58,8 +71,9 @@ class ApiClient {
     }
   }
 
-  async get<T>(endpoint: string): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, { method: 'GET' });
+  async get<T>(endpoint: string, options?: { params?: Record<string, any> }): Promise<ApiResponse<T>> {
+    const qs = this.buildQueryString(options?.params);
+    return this.request<T>(`${endpoint}${qs}`, { method: 'GET' });
   }
 
   async post<T>(endpoint: string, body?: any): Promise<ApiResponse<T>> {
@@ -72,6 +86,13 @@ class ApiClient {
   async put<T>(endpoint: string, body?: any): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'PUT',
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
+  async patch<T>(endpoint: string, body?: any): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
       body: body ? JSON.stringify(body) : undefined,
     });
   }
