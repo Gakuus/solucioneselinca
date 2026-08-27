@@ -7,7 +7,7 @@ export class AlertsController {
     try {
       const query = req.query as unknown as AlertQueryInput;
       const result = await alertsService.getAll(query);
-      res.json(result);
+      res.json({ status: 'success', ...result });
     } catch (error) {
       next(error);
     }
@@ -17,7 +17,7 @@ export class AlertsController {
     try {
       const { id } = req.params;
       const alert = await alertsService.getById(id);
-      res.json(alert);
+      res.json({ status: 'success', data: alert });
     } catch (error) {
       next(error);
     }
@@ -27,7 +27,7 @@ export class AlertsController {
     try {
       const data = req.body as CreateAlertInput;
       const alert = await alertsService.create(data);
-      res.status(201).json(alert);
+      res.status(201).json({ status: 'success', data: alert });
     } catch (error) {
       next(error);
     }
@@ -36,12 +36,12 @@ export class AlertsController {
   async markAsRead(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const userId = req.user?.id;
+      const userId = req.user?.userId;
       if (!userId) {
-        return res.status(401).json({ message: 'No autorizado' });
+        return res.status(401).json({ status: 'error', message: 'No autorizado' });
       }
       const alert = await alertsService.markAsRead(id, userId);
-      res.json(alert);
+      res.json({ status: 'success', data: alert });
     } catch (error) {
       next(error);
     }
@@ -49,12 +49,12 @@ export class AlertsController {
 
   async markAllAsRead(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user?.userId;
       if (!userId) {
-        return res.status(401).json({ message: 'No autorizado' });
+        return res.status(401).json({ status: 'error', message: 'No autorizado' });
       }
       const result = await alertsService.markAllAsRead(userId);
-      res.json(result);
+      res.json({ status: 'success', data: result });
     } catch (error) {
       next(error);
     }
@@ -64,7 +64,7 @@ export class AlertsController {
     try {
       const { id } = req.params;
       const result = await alertsService.delete(id);
-      res.json(result);
+      res.json({ status: 'success', data: result });
     } catch (error) {
       next(error);
     }
@@ -73,7 +73,7 @@ export class AlertsController {
   async getStats(req: Request, res: Response, next: NextFunction) {
     try {
       const stats = await alertsService.getStats();
-      res.json(stats);
+      res.json({ status: 'success', data: stats });
     } catch (error) {
       next(error);
     }
@@ -82,7 +82,7 @@ export class AlertsController {
   async checkUpcoming(req: Request, res: Response, next: NextFunction) {
     try {
       const result = await alertsService.checkUpcomingMaintenances();
-      res.json(result);
+      res.json({ status: 'success', data: result });
     } catch (error) {
       next(error);
     }

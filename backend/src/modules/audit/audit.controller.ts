@@ -7,7 +7,7 @@ export class AuditController {
     try {
       const query = req.query as unknown as AuditQueryInput;
       const result = await auditService.getAll(query);
-      res.json(result);
+      res.json({ status: 'success', ...result });
     } catch (error) {
       next(error);
     }
@@ -18,9 +18,9 @@ export class AuditController {
       const { id } = req.params;
       const log = await auditService.getById(id);
       if (!log) {
-        return res.status(404).json({ message: 'Registro de auditoría no encontrado' });
+        return res.status(404).json({ status: 'error', message: 'Registro de auditoría no encontrado' });
       }
-      res.json(log);
+      res.json({ status: 'success', data: log });
     } catch (error) {
       next(error);
     }
@@ -29,7 +29,7 @@ export class AuditController {
   async getStats(req: Request, res: Response, next: NextFunction) {
     try {
       const stats = await auditService.getStats();
-      res.json(stats);
+      res.json({ status: 'success', data: stats });
     } catch (error) {
       next(error);
     }
@@ -39,7 +39,7 @@ export class AuditController {
     try {
       const limit = parseInt(req.query.limit as string) || 10;
       const logs = await auditService.getRecentActivity(limit);
-      res.json(logs);
+      res.json({ status: 'success', data: logs });
     } catch (error) {
       next(error);
     }

@@ -7,7 +7,7 @@ export class SchedulingController {
     try {
       const query = req.query as unknown as ScheduleQueryInput;
       const result = await schedulingService.getAll(query);
-      res.json(result);
+      res.json({ status: 'success', ...result });
     } catch (error) {
       next(error);
     }
@@ -17,7 +17,7 @@ export class SchedulingController {
     try {
       const { id } = req.params;
       const schedule = await schedulingService.getById(id);
-      res.json(schedule);
+      res.json({ status: 'success', data: schedule });
     } catch (error) {
       next(error);
     }
@@ -27,7 +27,7 @@ export class SchedulingController {
     try {
       const data = req.body as CreateScheduleInput;
       const schedule = await schedulingService.create(data);
-      res.status(201).json(schedule);
+      res.status(201).json({ status: 'success', data: schedule });
     } catch (error) {
       next(error);
     }
@@ -38,7 +38,7 @@ export class SchedulingController {
       const { id } = req.params;
       const data = req.body as UpdateScheduleInput;
       const schedule = await schedulingService.update(id, data);
-      res.json(schedule);
+      res.json({ status: 'success', data: schedule });
     } catch (error) {
       next(error);
     }
@@ -48,7 +48,7 @@ export class SchedulingController {
     try {
       const { id } = req.params;
       const result = await schedulingService.delete(id);
-      res.json(result);
+      res.json({ status: 'success', data: result });
     } catch (error) {
       next(error);
     }
@@ -58,7 +58,7 @@ export class SchedulingController {
     try {
       const { id } = req.params;
       const schedule = await schedulingService.toggleActive(id);
-      res.json(schedule);
+      res.json({ status: 'success', data: schedule });
     } catch (error) {
       next(error);
     }
@@ -67,12 +67,12 @@ export class SchedulingController {
   async executeSchedule(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const technicianId = req.user?.id;
+      const technicianId = req.user?.userId;
       if (!technicianId) {
-        return res.status(401).json({ message: 'No autorizado' });
+        return res.status(401).json({ status: 'error', message: 'No autorizado' });
       }
       const maintenance = await schedulingService.executeSchedule(id, technicianId);
-      res.status(201).json(maintenance);
+      res.status(201).json({ status: 'success', data: maintenance });
     } catch (error) {
       next(error);
     }
@@ -82,7 +82,7 @@ export class SchedulingController {
     try {
       const days = parseInt(req.query.days as string) || 30;
       const schedules = await schedulingService.getUpcomingExecutions(days);
-      res.json(schedules);
+      res.json({ status: 'success', data: schedules });
     } catch (error) {
       next(error);
     }

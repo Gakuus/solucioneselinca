@@ -52,10 +52,11 @@ class ApiClient {
       const data = await response.json();
 
       if (!response.ok) {
+        const message = data?.message || data?.error?.message || 'Error en la solicitud';
         throw {
           status: response.status,
-          message: data.message || 'Error en la solicitud',
-          errors: data.errors,
+          message,
+          errors: data?.errors,
         };
       }
 

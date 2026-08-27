@@ -27,7 +27,10 @@ async function bootstrap() {
   
   const app = express();
 
-  app.use(helmet());
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginEmbedderPolicy: false,
+  }));
   app.use(configureCors());
   app.use(cookieParser());
   app.use(express.json({ limit: '10mb' }));

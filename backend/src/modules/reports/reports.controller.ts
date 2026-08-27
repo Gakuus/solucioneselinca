@@ -7,7 +7,7 @@ export class ReportsController {
     try {
       const query = req.query as unknown as ReportQueryInput;
       const result = await reportsService.getMaintenanceReport(query);
-      res.json(result);
+      res.json({ status: 'success', data: result });
     } catch (error) {
       next(error);
     }
@@ -17,7 +17,7 @@ export class ReportsController {
     try {
       const query = req.query as unknown as ReportQueryInput;
       const result = await reportsService.getMachineReport(query);
-      res.json(result);
+      res.json({ status: 'success', data: result });
     } catch (error) {
       next(error);
     }
@@ -27,7 +27,7 @@ export class ReportsController {
     try {
       const query = req.query as unknown as ReportQueryInput;
       const result = await reportsService.getTechnicianReport(query);
-      res.json(result);
+      res.json({ status: 'success', data: result });
     } catch (error) {
       next(error);
     }
@@ -37,7 +37,7 @@ export class ReportsController {
     try {
       const query = req.query as unknown as ReportQueryInput;
       const result = await reportsService.getCostReport(query);
-      res.json(result);
+      res.json({ status: 'success', data: result });
     } catch (error) {
       next(error);
     }
@@ -47,7 +47,7 @@ export class ReportsController {
     try {
       const query = req.query as unknown as DashboardQueryInput;
       const result = await reportsService.getDashboardStats(query);
-      res.json(result);
+      res.json({ status: 'success', data: result });
     } catch (error) {
       next(error);
     }

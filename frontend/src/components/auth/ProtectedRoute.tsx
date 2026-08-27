@@ -3,10 +3,11 @@ import { useAuthStore } from '@/stores/authStore';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'ADMIN' | 'SUPERVISOR' | 'TECHNICIAN' | 'VIEWER';
+  requiredRole?: string;
+  requiredRoles?: string[];
 }
 
-export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, requiredRole, requiredRoles }: ProtectedRouteProps) {
   const { isAuthenticated, user } = useAuthStore();
 
   if (!isAuthenticated) {
@@ -14,6 +15,10 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   }
 
   if (requiredRole && user?.role !== requiredRole) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (requiredRoles && !requiredRoles.includes(user?.role || '')) {
     return <Navigate to="/dashboard" replace />;
   }
 

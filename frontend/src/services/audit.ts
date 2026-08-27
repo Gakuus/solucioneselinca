@@ -50,7 +50,7 @@ export interface PaginatedResponse<T> {
 export const auditApi = {
   getAll: async (params?: AuditQueryParams): Promise<PaginatedResponse<AuditLog>> => {
     const response = await api.get('/audit', { params });
-    return response.data;
+    return response;
   },
 
   getById: async (id: string): Promise<AuditLog> => {

@@ -19,6 +19,7 @@ export interface UserStats {
 }
 
 export interface PaginatedResponse<T> {
+  status: string;
   data: T[];
   pagination: {
     page: number;
@@ -64,7 +65,7 @@ export const usersApi = {
       });
     }
     const response = await api.get(`/users?${params.toString()}`);
-    return response.data;
+    return response as any;
   },
 
   getById: async (id: string): Promise<User> => {

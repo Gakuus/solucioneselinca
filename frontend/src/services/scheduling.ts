@@ -81,7 +81,7 @@ export interface PaginatedResponse<T> {
 export const schedulingApi = {
   getAll: async (params?: ScheduleQueryParams): Promise<PaginatedResponse<Schedule>> => {
     const response = await api.get('/scheduling', { params });
-    return response.data;
+    return response;
   },
 
   getById: async (id: string): Promise<Schedule> => {

@@ -10,22 +10,16 @@ export function errorHandler(
 ) {
   if (error instanceof ValidationError) {
     return res.status(error.statusCode).json({
-      success: false,
-      error: {
-        code: error.code,
-        message: error.message,
-        errors: error.errors,
-      },
+      status: 'error',
+      message: error.message,
+      errors: error.errors,
     });
   }
 
   if (error instanceof AppError) {
     return res.status(error.statusCode).json({
-      success: false,
-      error: {
-        code: error.code,
-        message: error.message,
-      },
+      status: 'error',
+      message: error.message,
     });
   }
 
@@ -33,10 +27,7 @@ export function errorHandler(
   logger.error('Unhandled error:', error.message);
 
   return res.status(500).json({
-    success: false,
-    error: {
-      code: 'INTERNAL_SERVER_ERROR',
-      message: 'An unexpected error occurred',
-    },
+    status: 'error',
+    message: 'An unexpected error occurred',
   });
 }

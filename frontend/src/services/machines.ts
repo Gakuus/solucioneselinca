@@ -61,6 +61,7 @@ export interface MachineHistory {
 }
 
 export interface PaginatedResponse<T> {
+  status: string;
   data: T[];
   pagination: {
     page: number;
@@ -106,7 +107,7 @@ export const machinesApi = {
       });
     }
     const response = await api.get(`/machines?${params.toString()}`);
-    return response.data;
+    return response as any;
   },
 
   getById: async (id: string): Promise<Machine> => {
@@ -148,7 +149,7 @@ export const machinesApi = {
       });
     }
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'}/machines/export?${params.toString()}`,
+      `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1'}/machines/export?${params.toString()}`,
       {
         credentials: 'include',
         headers: {

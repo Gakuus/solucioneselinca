@@ -119,7 +119,7 @@ export interface MaintenanceStats {
 export const maintenancesApi = {
   getAll: async (params?: MaintenanceQueryParams): Promise<PaginatedResponse<Maintenance>> => {
     const response = await api.get('/maintenances', { params });
-    return response.data;
+    return response;
   },
 
   getById: async (id: string): Promise<Maintenance> => {

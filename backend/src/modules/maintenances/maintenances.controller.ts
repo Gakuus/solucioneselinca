@@ -14,7 +14,7 @@ export class MaintenancesController {
     try {
       const query = req.query as unknown as MaintenanceQueryInput;
       const result = await maintenancesService.getAll(query);
-      res.json(result);
+      res.json({ status: 'success', ...result });
     } catch (error) {
       next(error);
     }
@@ -24,7 +24,7 @@ export class MaintenancesController {
     try {
       const { id } = req.params;
       const maintenance = await maintenancesService.getById(id);
-      res.json(maintenance);
+      res.json({ status: 'success', data: maintenance });
     } catch (error) {
       next(error);
     }
@@ -34,7 +34,7 @@ export class MaintenancesController {
     try {
       const data = req.body as CreateMaintenanceInput;
       const maintenance = await maintenancesService.create(data);
-      res.status(201).json(maintenance);
+      res.status(201).json({ status: 'success', data: maintenance });
     } catch (error) {
       next(error);
     }
@@ -45,7 +45,7 @@ export class MaintenancesController {
       const { id } = req.params;
       const data = req.body as UpdateMaintenanceInput;
       const maintenance = await maintenancesService.update(id, data);
-      res.json(maintenance);
+      res.json({ status: 'success', data: maintenance });
     } catch (error) {
       next(error);
     }
@@ -56,7 +56,7 @@ export class MaintenancesController {
       const { id } = req.params;
       const data = req.body as ChangeMaintenanceStatusInput;
       const maintenance = await maintenancesService.changeStatus(id, data);
-      res.json(maintenance);
+      res.json({ status: 'success', data: maintenance });
     } catch (error) {
       next(error);
     }
@@ -66,7 +66,7 @@ export class MaintenancesController {
     try {
       const { id } = req.params;
       const result = await maintenancesService.delete(id);
-      res.json(result);
+      res.json({ status: 'success', data: result });
     } catch (error) {
       next(error);
     }
@@ -77,7 +77,7 @@ export class MaintenancesController {
       const { id } = req.params;
       const data = req.body as AddMaintenanceItemInput;
       const item = await maintenancesService.addItem(id, data);
-      res.status(201).json(item);
+      res.status(201).json({ status: 'success', data: item });
     } catch (error) {
       next(error);
     }
@@ -88,7 +88,7 @@ export class MaintenancesController {
       const { id, itemId } = req.params;
       const data = req.body as UpdateMaintenanceItemInput;
       const item = await maintenancesService.updateItem(id, itemId, data);
-      res.json(item);
+      res.json({ status: 'success', data: item });
     } catch (error) {
       next(error);
     }
@@ -98,7 +98,7 @@ export class MaintenancesController {
     try {
       const { id, itemId } = req.params;
       const result = await maintenancesService.deleteItem(id, itemId);
-      res.json(result);
+      res.json({ status: 'success', data: result });
     } catch (error) {
       next(error);
     }
@@ -107,7 +107,7 @@ export class MaintenancesController {
   async getStats(req: Request, res: Response, next: NextFunction) {
     try {
       const stats = await maintenancesService.getStats();
-      res.json(stats);
+      res.json({ status: 'success', data: stats });
     } catch (error) {
       next(error);
     }
@@ -120,7 +120,7 @@ export class MaintenancesController {
         Number(year),
         Number(month)
       );
-      res.json(result);
+      res.json({ status: 'success', data: result });
     } catch (error) {
       next(error);
     }
