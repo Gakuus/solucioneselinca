@@ -102,6 +102,7 @@ model Machine {
   machineType  MachineType   @relation(fields: [machineTypeId], references: [id])
   maintenances Maintenance[]
   alerts       Alert[]
+  schedules    MaintenanceSchedule[]
 
   @@index([code])
   @@index([status])
@@ -117,7 +118,8 @@ model MaintenanceType {
   isActive      Boolean             @default(true) @map("is_active")
   createdAt     DateTime            @default(now()) @map("created_at")
 
-  maintenances Maintenance[]
+  maintenances    Maintenance[]
+  schedules       MaintenanceSchedule[]
 
   @@map("maintenance_types")
 }
@@ -230,6 +232,39 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+enum MaintenanceFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+model MaintenanceSchedule {
+  id                String               @id @default(uuid())
+  machineId         String               @map("machine_id")
+  maintenanceTypeId String               @map("maintenance_type_id")
+  frequency         MaintenanceFrequency
+  interval          Int                  @default(1)
+  startDate         DateTime             @map("start_date")
+  endDate           DateTime?            @map("end_date")
+  nextExecution     DateTime             @map("next_execution")
+  lastExecution     DateTime?            @map("last_execution")
+  hoursInterval     Float?               @map("hours_interval")
+  isActive          Boolean              @default(true) @map("is_active")
+  description       String?
+  createdAt         DateTime             @default(now()) @map("created_at")
+  updatedAt         DateTime             @updatedAt @map("updated_at")
+
+  machine          Machine          @relation(fields: [machineId], references: [id])
+  maintenanceType  MaintenanceType  @relation(fields: [maintenanceTypeId], references: [id])
+
+  @@index([machineId])
+  @@index([nextExecution])
+  @@index([isActive])
+  @@map("maintenance_schedules")
 }
 
 model SystemConfig {

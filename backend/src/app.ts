@@ -20,6 +20,7 @@ import maintenancesRouter from './modules/maintenances/maintenances.routes';
 import alertsRouter from './modules/alerts/alerts.routes';
 import auditRouter from './modules/audit/audit.routes';
 import reportsRouter from './modules/reports/reports.routes';
+import schedulingRouter from './modules/scheduling/scheduling.routes';
 
 async function bootstrap() {
   const config = loadConfig();
@@ -64,6 +65,9 @@ async function bootstrap() {
 
   // Reports routes
   app.use('/api/v1/reports', reportsRouter);
+
+  // Scheduling routes
+  app.use('/api/v1/scheduling', schedulingRouter);
 
   app.use(errorHandler);
 
