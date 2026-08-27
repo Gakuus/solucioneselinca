@@ -8,6 +8,7 @@ import {
   ConflictError,
   NotFoundError,
   ForbiddenError,
+  BadRequestError,
 } from '../../shared/errors/AppError';
 import type { LoginInput, RegisterInput, ChangePasswordInput } from './auth.validation';
 
@@ -230,6 +231,41 @@ export class AuthService {
     }
 
     return user;
+  }
+
+  async updateProfile(userId: string, data: { name?: string; email?: string }) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundError('Usuario no encontrado');
+    }
+
+    if (data.email && data.email !== user.email) {
+      const existing = await prisma.user.findFirst({
+        where: { email: data.email, id: { not: userId } },
+      });
+      if (existing) {
+        throw new BadRequestError('El email ya está en uso');
+      }
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.email !== undefined && { email: data.email }),
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        lastLoginAt: true,
+        createdAt: true,
+      },
+    });
+
+    return updated;
   }
 
   private generateTokens(payload: TokenPayload) {

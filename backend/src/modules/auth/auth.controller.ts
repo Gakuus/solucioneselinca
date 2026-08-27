@@ -6,6 +6,7 @@ import {
   registerSchema,
   refreshTokenSchema,
   changePasswordSchema,
+  updateProfileSchema,
 } from './auth.validation';
 import { ZodError } from 'zod';
 
@@ -195,6 +196,35 @@ export class AuthController {
         data: profile,
       });
     } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateProfile(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        return res.status(401).json({
+          status: 'error',
+          message: 'No autenticado',
+        });
+      }
+
+      const data = updateProfileSchema.parse(req.body);
+      const profile = await authService.updateProfile(userId, data);
+
+      res.json({
+        status: 'success',
+        data: profile,
+      });
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Datos inválidos',
+          errors: error.errors,
+        });
+      }
       next(error);
     }
   }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, LogOut, User, Menu, Check, CheckCheck, AlertTriangle, AlertCircle, Info, X } from 'lucide-react';
+import { Bell, LogOut, User, Menu, Check, CheckCheck, AlertTriangle, AlertCircle, Info, X, ChevronDown, Settings } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui/button';
 import { alertsApi, Alert } from '@/services/alerts';
@@ -16,6 +16,13 @@ const severityConfig: Record<string, { icon: typeof Bell; color: string }> = {
   LOW: { icon: Info, color: 'text-blue-500' },
 };
 
+const roleLabels: Record<string, string> = {
+  ADMIN: 'Administrador',
+  SUPERVISOR: 'Supervisor',
+  TECHNICIAN: 'Técnico',
+  VIEWER: 'Visualizador',
+};
+
 export function Header({ onMenuToggle }: HeaderProps) {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
@@ -23,8 +30,10 @@ export function Header({ onMenuToggle }: HeaderProps) {
   const [recentAlerts, setRecentAlerts] = useState<Alert[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const bellRef = useRef<HTMLButtonElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   const fetchUnreadCount = useCallback(async () => {
     try {
@@ -64,12 +73,15 @@ export function Header({ onMenuToggle }: HeaderProps) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setIsOpen(false);
       }
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
     }
-    if (isOpen) {
+    if (isOpen || profileOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [isOpen]);
+  }, [isOpen, profileOpen]);
 
   const handleMarkAsRead = async (id: string) => {
     try {
@@ -96,8 +108,13 @@ export function Header({ onMenuToggle }: HeaderProps) {
     navigate('/login');
   };
 
-  const toggleDropdown = () => {
-    setIsOpen(!isOpen);
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   return (
@@ -124,7 +141,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
               variant="ghost"
               size="icon"
               className="relative"
-              onClick={toggleDropdown}
+              onClick={() => setIsOpen(!isOpen)}
             >
               <Bell size={20} />
               {unreadCount > 0 && (
@@ -134,10 +151,9 @@ export function Header({ onMenuToggle }: HeaderProps) {
               )}
             </Button>
 
-            {/* Dropdown */}
+            {/* Notifications Dropdown */}
             {isOpen && (
               <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[70vh] flex flex-col">
-                {/* Header */}
                 <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                   <h3 className="font-semibold text-sm">Notificaciones</h3>
                   <div className="flex items-center gap-2">
@@ -156,7 +172,6 @@ export function Header({ onMenuToggle }: HeaderProps) {
                   </div>
                 </div>
 
-                {/* Alerts List */}
                 <div className="overflow-y-auto flex-1">
                   {loading ? (
                     <div className="p-6 text-center text-gray-500 text-sm">
@@ -204,7 +219,6 @@ export function Header({ onMenuToggle }: HeaderProps) {
                   )}
                 </div>
 
-                {/* Footer */}
                 <div className="border-t border-gray-100 px-4 py-2">
                   <button
                     onClick={() => {
@@ -220,19 +234,76 @@ export function Header({ onMenuToggle }: HeaderProps) {
             )}
           </div>
 
-          {/* User Info */}
-          <div className="hidden sm:flex items-center gap-2">
-            <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center">
-              <User size={16} className="text-white" />
-            </div>
-            <div className="text-sm">
-              <p className="font-medium">{user?.name}</p>
-              <p className="text-gray-500 text-xs">{user?.role}</p>
-            </div>
+          {/* User Profile */}
+          <div className="relative" ref={profileRef}>
+            <button
+              onClick={() => setProfileOpen(!profileOpen)}
+              className="flex items-center gap-2 hover:bg-gray-100 rounded-lg px-2 py-1.5 transition-colors"
+            >
+              <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                {user?.name ? getInitials(user.name) : <User size={16} />}
+              </div>
+              <div className="hidden sm:block text-left">
+                <p className="text-sm font-medium text-gray-900 leading-tight">{user?.name}</p>
+                <p className="text-xs text-gray-500 leading-tight">{roleLabels[user?.role || ''] || user?.role}</p>
+              </div>
+              <ChevronDown size={14} className="hidden sm:block text-gray-400" />
+            </button>
+
+            {/* Profile Dropdown */}
+            {profileOpen && (
+              <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                {/* User info header */}
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                      {user?.name ? getInitials(user.name) : <User size={18} />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{user?.name}</p>
+                      <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Menu items */}
+                <div className="py-1">
+                  <button
+                    onClick={() => {
+                      setProfileOpen(false);
+                      navigate('/profile');
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <User size={16} className="text-gray-400" />
+                    Mi perfil
+                  </button>
+                  {user?.role === 'ADMIN' && (
+                    <button
+                      onClick={() => {
+                        setProfileOpen(false);
+                        navigate('/config');
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <Settings size={16} className="text-gray-400" />
+                      Configuración
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      setProfileOpen(false);
+                      handleLogout();
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <LogOut size={16} />
+                    Cerrar sesión
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-          <Button variant="ghost" size="icon" onClick={handleLogout}>
-            <LogOut size={20} />
-          </Button>
         </div>
       </div>
     </header>

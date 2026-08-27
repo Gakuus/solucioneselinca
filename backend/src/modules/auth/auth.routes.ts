@@ -16,5 +16,6 @@ router.post('/change-password', authenticate, (req, res, next) =>
   authController.changePassword(req, res, next)
 );
 router.get('/profile', authenticate, (req, res, next) => authController.getProfile(req, res, next));
+router.put('/profile', authenticate, (req, res, next) => authController.updateProfile(req, res, next));
 
 export default router;

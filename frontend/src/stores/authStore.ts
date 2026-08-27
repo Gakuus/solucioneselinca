@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { api } from '../services/api';
+import { authApi, UpdateProfileData, ChangePasswordData } from '../services/auth';
 
 interface User {
   id: string;
@@ -20,6 +21,8 @@ interface AuthState {
   logout: () => Promise<void>;
   refreshToken: () => Promise<void>;
   clearError: () => void;
+  updateProfile: (data: UpdateProfileData) => Promise<void>;
+  changePassword: (data: ChangePasswordData) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -106,6 +109,24 @@ export const useAuthStore = create<AuthState>()(
       },
 
       clearError: () => set({ error: null }),
+
+      updateProfile: async (data: UpdateProfileData) => {
+        const updated = await authApi.updateProfile(data);
+        const currentUser = get().user;
+        if (currentUser) {
+          set({
+            user: {
+              ...currentUser,
+              name: updated.name,
+              email: updated.email,
+            },
+          });
+        }
+      },
+
+      changePassword: async (data: ChangePasswordData) => {
+        await authApi.changePassword(data);
+      },
     }),
     {
       name: 'auth-storage',

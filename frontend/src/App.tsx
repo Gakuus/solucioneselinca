@@ -11,6 +11,7 @@ import { UsersPage } from './pages/UsersPage';
 import { AuditPage } from './pages/AuditPage';
 import { ConfigPage } from './pages/ConfigPage';
 import { CatalogsPage } from './pages/CatalogsPage';
+import { ProfilePage } from './pages/ProfilePage';
 import { MainLayout } from './components/layout/MainLayout';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
@@ -42,6 +43,7 @@ function App() {
             />
             <Route path="reports" element={<ReportsPage />} />
             <Route path="alerts" element={<AlertsPage />} />
+            <Route path="profile" element={<ProfilePage />} />
             <Route
               path="users"
               element={
