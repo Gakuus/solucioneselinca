@@ -432,9 +432,9 @@ function MaintenanceFormModal({
       try {
         setIsLoadingData(true);
         const [machinesData, typesData, usersData] = await Promise.all([
-          machinesApi.getAll({ limit: 200 }),
+          machinesApi.getAll({ limit: 100 }),
           catalogsApi.getMaintenanceTypes(),
-          usersApi.getAll({ limit: 200, role: 'TECHNICIAN' }),
+          usersApi.getAll({ limit: 100, role: 'TECHNICIAN' }),
         ]);
         setMachines(machinesData.data);
         setMaintenanceTypes(typesData);
