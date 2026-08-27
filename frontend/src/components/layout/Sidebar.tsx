@@ -8,7 +8,8 @@ import {
   Bell, 
   Users, 
   FileText, 
-  Settings 
+  Settings,
+  BookOpen 
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -21,6 +22,7 @@ const menuItems = [
   { path: '/alerts', label: 'Alertas', icon: Bell, roles: ['ADMIN', 'SUPERVISOR', 'TECHNICIAN', 'VIEWER'] },
   { path: '/users', label: 'Usuarios', icon: Users, roles: ['ADMIN'] },
   { path: '/audit', label: 'Auditoría', icon: FileText, roles: ['ADMIN'] },
+  { path: '/catalogs', label: 'Catálogos', icon: BookOpen, roles: ['ADMIN'] },
   { path: '/config', label: 'Configuración', icon: Settings, roles: ['ADMIN'] },
 ];
 
@@ -33,7 +35,7 @@ export function Sidebar() {
   return (
     <aside className="bg-slate-900 text-white w-64 flex-shrink-0">
       <div className="p-4 border-b border-slate-700">
-        <h1 className="text-xl font-bold">MantenimientoPlus</h1>
+        <h1 className="text-xl font-bold">Soluciones ELINCA</h1>
       </div>
       <nav className="p-4">
         <ul className="space-y-2">

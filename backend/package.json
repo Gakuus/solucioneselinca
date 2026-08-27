@@ -1,7 +1,7 @@
 {
-  "name": "mantenimientoplus-backend",
+  "name": "solucioneselinca-backend",
   "version": "1.0.0",
-  "description": "Backend API for MantenimientoPlus",
+  "description": "Backend API for Soluciones ELINCA",
   "main": "dist/app.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/app.ts",

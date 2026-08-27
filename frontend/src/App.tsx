@@ -9,6 +9,7 @@ import { AlertsPage } from './pages/AlertsPage';
 import { UsersPage } from './pages/UsersPage';
 import { AuditPage } from './pages/AuditPage';
 import { ConfigPage } from './pages/ConfigPage';
+import { CatalogsPage } from './pages/CatalogsPage';
 import { MainLayout } from './components/layout/MainLayout';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
@@ -52,6 +53,14 @@ function App() {
             element={
               <ProtectedRoute requiredRole="ADMIN">
                 <AuditPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="catalogs"
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <CatalogsPage />
               </ProtectedRoute>
             }
           />
