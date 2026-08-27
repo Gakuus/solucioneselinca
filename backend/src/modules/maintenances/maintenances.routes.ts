@@ -3,6 +3,7 @@ import { maintenancesController } from './maintenances.controller';
 import { authenticate } from '../../shared/middleware/authenticate';
 import { authorize } from '../../shared/middleware/authorize';
 import { validate } from '../../shared/middleware/validate';
+import { idParamSchema, idAndItemIdParamSchema } from '../../shared/middleware/paramSchemas';
 import {
   createMaintenanceSchema,
   updateMaintenanceSchema,
@@ -34,6 +35,7 @@ router.get(
 
 router.get(
   '/:id',
+  validate({ params: idParamSchema }),
   maintenancesController.getById
 );
 
@@ -47,7 +49,7 @@ router.post(
 router.put(
   '/:id',
   authorize('ADMIN', 'SUPERVISOR', 'TECHNICIAN'),
-  validate({ body: updateMaintenanceSchema }),
+  validate({ params: idParamSchema, body: updateMaintenanceSchema }),
   maintenancesController.update
 );
 
@@ -61,26 +63,28 @@ router.patch(
 router.delete(
   '/:id',
   authorize('ADMIN', 'SUPERVISOR'),
+  validate({ params: idParamSchema }),
   maintenancesController.delete
 );
 
 router.post(
   '/:id/items',
   authorize('ADMIN', 'SUPERVISOR', 'TECHNICIAN'),
-  validate({ body: addMaintenanceItemSchema }),
+  validate({ params: idParamSchema, body: addMaintenanceItemSchema }),
   maintenancesController.addItem
 );
 
 router.put(
   '/:id/items/:itemId',
   authorize('ADMIN', 'SUPERVISOR', 'TECHNICIAN'),
-  validate({ body: updateMaintenanceItemSchema }),
+  validate({ params: idAndItemIdParamSchema, body: updateMaintenanceItemSchema }),
   maintenancesController.updateItem
 );
 
 router.delete(
   '/:id/items/:itemId',
   authorize('ADMIN', 'SUPERVISOR', 'TECHNICIAN'),
+  validate({ params: idAndItemIdParamSchema }),
   maintenancesController.deleteItem
 );
 

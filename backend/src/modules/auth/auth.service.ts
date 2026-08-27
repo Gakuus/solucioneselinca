@@ -38,11 +38,40 @@ export class AuthService {
       throw new ForbiddenError('Usuario desactivado. Contacte al administrador.');
     }
 
+    // Account lockout check (after N failed attempts, lock for a period)
+    const lockKey = `lock:${user.id}`;
+    const isLocked = await getRedis().get(lockKey);
+    if (isLocked) {
+      const ttl = await getRedis().ttl(lockKey);
+      const minutes = Math.ceil(ttl / 60);
+      throw new UnauthorizedError(
+        `Demasiados intentos fallidos. Cuenta bloqueada por ${minutes} minuto(s).`
+      );
+    }
+
     const isPasswordValid = await bcrypt.compare(data.password, user.passwordHash);
 
     if (!isPasswordValid) {
+      // Increment failed attempt counter (15 min window)
+      const failKey = `fail:${user.id}`;
+      const attempts = await getRedis().incr(failKey);
+      if (attempts === 1) {
+        await getRedis().expire(failKey, 15 * 60);
+      }
+      // After 5 failed attempts, lock the account for 15 minutes
+      if (attempts >= 5) {
+        await getRedis().setex(lockKey, 15 * 60, '1');
+        await getRedis().del(failKey);
+        throw new UnauthorizedError(
+          'Demasiados intentos fallidos. Cuenta bloqueada por 15 minutos.'
+        );
+      }
       throw new UnauthorizedError('Credenciales inválidas');
     }
+
+    // Successful login - clear failed attempts and lockout
+    await getRedis().del(`fail:${user.id}`);
+    await getRedis().del(lockKey);
 
     const tokens = this.generateTokens({
       userId: user.id,
@@ -90,7 +119,7 @@ export class AuthService {
         name: data.name,
         email: data.email,
         passwordHash,
-        role: data.role || 'VIEWER',
+        role: 'VIEWER',
       },
     });
 

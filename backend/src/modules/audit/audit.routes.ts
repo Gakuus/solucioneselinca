@@ -3,6 +3,7 @@ import { auditController } from './audit.controller';
 import { authenticate } from '../../shared/middleware/authenticate';
 import { authorize } from '../../shared/middleware/authorize';
 import { validate } from '../../shared/middleware/validate';
+import { idParamSchema } from '../../shared/middleware/paramSchemas';
 import { auditQuerySchema } from './audit.validation';
 
 const router = Router();
@@ -28,6 +29,7 @@ router.get(
 
 router.get(
   '/:id',
+  validate({ params: idParamSchema }),
   auditController.getById
 );
 

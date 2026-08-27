@@ -4,6 +4,7 @@ import { authenticate } from '../../shared/middleware/authenticate';
 import { authorize } from '../../shared/middleware/authorize';
 import { validate } from '../../shared/middleware/validate';
 import { createAlertSchema, alertQuerySchema } from './alerts.validation';
+import { idParamSchema } from '../../shared/middleware/paramSchemas';
 
 const router = Router();
 
@@ -11,17 +12,21 @@ router.use(authenticate);
 
 router.get(
   '/stats',
+  authorize('ADMIN', 'SUPERVISOR', 'TECHNICIAN'),
   alertsController.getStats
 );
 
 router.get(
   '/',
   validate({ query: alertQuerySchema }),
+  authorize('ADMIN', 'SUPERVISOR', 'TECHNICIAN'),
   alertsController.getAll
 );
 
 router.get(
   '/:id',
+  validate({ params: idParamSchema }),
+  authorize('ADMIN', 'SUPERVISOR', 'TECHNICIAN'),
   alertsController.getById
 );
 
@@ -34,6 +39,7 @@ router.post(
 
 router.patch(
   '/:id/read',
+  validate({ params: idParamSchema }),
   alertsController.markAsRead
 );
 
@@ -44,6 +50,7 @@ router.patch(
 
 router.delete(
   '/:id',
+  validate({ params: idParamSchema }),
   authorize('ADMIN'),
   alertsController.delete
 );

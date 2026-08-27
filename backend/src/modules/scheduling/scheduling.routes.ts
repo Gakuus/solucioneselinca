@@ -3,6 +3,7 @@ import { schedulingController } from './scheduling.controller';
 import { authenticate } from '../../shared/middleware/authenticate';
 import { authorize } from '../../shared/middleware/authorize';
 import { validate } from '../../shared/middleware/validate';
+import { idParamSchema } from '../../shared/middleware/paramSchemas';
 import { createScheduleSchema, updateScheduleSchema, scheduleQuerySchema } from './scheduling.validation';
 
 const router = Router();
@@ -22,6 +23,7 @@ router.get(
 
 router.get(
   '/:id',
+  validate({ params: idParamSchema }),
   schedulingController.getById
 );
 
@@ -35,25 +37,28 @@ router.post(
 router.put(
   '/:id',
   authorize('ADMIN', 'SUPERVISOR'),
-  validate({ body: updateScheduleSchema }),
+  validate({ params: idParamSchema, body: updateScheduleSchema }),
   schedulingController.update
 );
 
 router.delete(
   '/:id',
   authorize('ADMIN', 'SUPERVISOR'),
+  validate({ params: idParamSchema }),
   schedulingController.delete
 );
 
 router.patch(
   '/:id/toggle',
   authorize('ADMIN', 'SUPERVISOR'),
+  validate({ params: idParamSchema }),
   schedulingController.toggleActive
 );
 
 router.post(
   '/:id/execute',
   authorize('ADMIN', 'SUPERVISOR', 'TECHNICIAN'),
+  validate({ params: idParamSchema }),
   schedulingController.executeSchedule
 );
 

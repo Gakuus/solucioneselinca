@@ -2,13 +2,14 @@ import { Router } from 'express';
 import { authController } from './auth.controller';
 import { authenticate } from '../../shared/middleware/authenticate';
 import { authorize } from '../../shared/middleware/authorize';
+import { authRateLimiter } from '../../shared/middleware/rateLimiter';
 
 const router = Router();
 
-// Public routes
-router.post('/login', (req, res, next) => authController.login(req, res, next));
-router.post('/register', (req, res, next) => authController.register(req, res, next));
-router.post('/refresh-token', (req, res, next) => authController.refreshToken(req, res, next));
+// Public routes (with aggressive rate limiting for brute-force protection)
+router.post('/login', authRateLimiter, (req, res, next) => authController.login(req, res, next));
+router.post('/register', authRateLimiter, (req, res, next) => authController.register(req, res, next));
+router.post('/refresh-token', authRateLimiter, (req, res, next) => authController.refreshToken(req, res, next));
 
 // Protected routes
 router.post('/logout', authenticate, (req, res, next) => authController.logout(req, res, next));

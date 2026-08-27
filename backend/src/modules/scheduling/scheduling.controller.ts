@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { schedulingService } from './scheduling.service';
+import { auditService } from '../audit/audit.service';
 import { CreateScheduleInput, UpdateScheduleInput, ScheduleQueryInput } from './scheduling.validation';
 
 export class SchedulingController {
@@ -27,6 +28,17 @@ export class SchedulingController {
     try {
       const data = req.body as CreateScheduleInput;
       const schedule = await schedulingService.create(data);
+
+      await auditService.log({
+        userId: req.user?.userId,
+        action: 'CREATE',
+        entityType: 'Schedule',
+        entityId: schedule.id,
+        newValues: { machine: schedule.machine?.code, frequency: schedule.frequency },
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+
       res.status(201).json({ status: 'success', data: schedule });
     } catch (error) {
       next(error);
@@ -38,6 +50,17 @@ export class SchedulingController {
       const { id } = req.params;
       const data = req.body as UpdateScheduleInput;
       const schedule = await schedulingService.update(id, data);
+
+      await auditService.log({
+        userId: req.user?.userId,
+        action: 'UPDATE',
+        entityType: 'Schedule',
+        entityId: schedule.id,
+        newValues: { machine: schedule.machine?.code, frequency: schedule.frequency },
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+
       res.json({ status: 'success', data: schedule });
     } catch (error) {
       next(error);
@@ -48,6 +71,16 @@ export class SchedulingController {
     try {
       const { id } = req.params;
       const result = await schedulingService.delete(id);
+
+      await auditService.log({
+        userId: req.user?.userId,
+        action: 'DELETE',
+        entityType: 'Schedule',
+        entityId: id,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+
       res.json({ status: 'success', data: result });
     } catch (error) {
       next(error);
@@ -58,6 +91,17 @@ export class SchedulingController {
     try {
       const { id } = req.params;
       const schedule = await schedulingService.toggleActive(id);
+
+      await auditService.log({
+        userId: req.user?.userId,
+        action: 'UPDATE',
+        entityType: 'Schedule',
+        entityId: schedule.id,
+        newValues: { isActive: schedule.isActive },
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+
       res.json({ status: 'success', data: schedule });
     } catch (error) {
       next(error);
@@ -72,6 +116,16 @@ export class SchedulingController {
         return res.status(401).json({ status: 'error', message: 'No autorizado' });
       }
       const maintenance = await schedulingService.executeSchedule(id, technicianId);
+
+      await auditService.log({
+        userId: req.user?.userId,
+        action: 'CREATE',
+        entityType: 'ScheduleExecution',
+        entityId: maintenance.id,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+
       res.status(201).json({ status: 'success', data: maintenance });
     } catch (error) {
       next(error);

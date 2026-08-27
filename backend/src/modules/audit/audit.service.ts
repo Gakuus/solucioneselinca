@@ -1,7 +1,6 @@
-import { PrismaClient, Prisma, AuditAction } from '@prisma/client';
+import { prisma } from '../../config/database';
+import { Prisma, AuditAction } from '@prisma/client';
 import { AuditQueryInput } from './audit.validation';
-
-const prisma = new PrismaClient();
 
 export class AuditService {
   async getAll(query: AuditQueryInput) {

@@ -111,7 +111,7 @@ export const reportsApi = {
       {
         credentials: 'include',
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('auth-storage') ? JSON.parse(localStorage.getItem('auth-storage')!).state?.token : ''}`,
+          Authorization: `Bearer ${api.getAccessToken() || ''}`,
         },
       }
     );

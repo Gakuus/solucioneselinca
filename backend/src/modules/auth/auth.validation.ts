@@ -15,7 +15,6 @@ export const registerSchema = z.object({
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
       'La contraseña debe contener al menos: 1 mayúscula, 1 minúscula, 1 número y 1 símbolo'
     ),
-  role: z.enum(['ADMIN', 'SUPERVISOR', 'TECHNICIAN', 'VIEWER']).optional(),
 });
 
 export const refreshTokenSchema = z.object({

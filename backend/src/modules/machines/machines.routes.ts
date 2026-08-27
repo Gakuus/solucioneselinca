@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { machinesController } from './machines.controller';
 import { authenticate } from '../../shared/middleware/authenticate';
 import { authorize } from '../../shared/middleware/authorize';
+import { validate } from '../../shared/middleware/validate';
+import { idParamSchema } from '../../shared/middleware/paramSchemas';
 
 const router = Router();
 
@@ -11,17 +13,17 @@ router.use(authenticate);
 // GET /api/v1/machines - List machines (all roles)
 router.get('/', (req, res, next) => machinesController.findAll(req, res, next));
 
-// GET /api/v1/machines/export - Export CSV (all roles)
-router.get('/export', (req, res, next) => machinesController.exportCSV(req, res, next));
+// GET /api/v1/machines/export - Export CSV (Admin, Supervisor)
+router.get('/export', authorize('ADMIN', 'SUPERVISOR'), (req, res, next) => machinesController.exportCSV(req, res, next));
 
 // GET /api/v1/machines/types - Get machine types (all roles)
 router.get('/types', (req, res, next) => machinesController.getMachineTypes(req, res, next));
 
 // GET /api/v1/machines/:id - Get machine by ID (all roles)
-router.get('/:id', (req, res, next) => machinesController.findById(req, res, next));
+router.get('/:id', validate({ params: idParamSchema }), (req, res, next) => machinesController.findById(req, res, next));
 
 // GET /api/v1/machines/:id/history - Get machine history (all roles)
-router.get('/:id/history', (req, res, next) => machinesController.getHistory(req, res, next));
+router.get('/:id/history', validate({ params: idParamSchema }), (req, res, next) => machinesController.getHistory(req, res, next));
 
 // POST /api/v1/machines - Create machine (Admin, Supervisor)
 router.post('/', authorize('ADMIN', 'SUPERVISOR'), (req, res, next) =>
@@ -29,17 +31,17 @@ router.post('/', authorize('ADMIN', 'SUPERVISOR'), (req, res, next) =>
 );
 
 // PUT /api/v1/machines/:id - Update machine (Admin, Supervisor)
-router.put('/:id', authorize('ADMIN', 'SUPERVISOR'), (req, res, next) =>
+router.put('/:id', authorize('ADMIN', 'SUPERVISOR'), validate({ params: idParamSchema }), (req, res, next) =>
   machinesController.update(req, res, next)
 );
 
 // PATCH /api/v1/machines/:id/status - Change machine status (Admin, Supervisor)
-router.patch('/:id/status', authorize('ADMIN', 'SUPERVISOR'), (req, res, next) =>
+router.patch('/:id/status', authorize('ADMIN', 'SUPERVISOR'), validate({ params: idParamSchema }), (req, res, next) =>
   machinesController.changeStatus(req, res, next)
 );
 
 // DELETE /api/v1/machines/:id - Delete machine (Admin only)
-router.delete('/:id', authorize('ADMIN'), (req, res, next) =>
+router.delete('/:id', authorize('ADMIN'), validate({ params: idParamSchema }), (req, res, next) =>
   machinesController.delete(req, res, next)
 );
 
