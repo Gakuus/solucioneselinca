@@ -6,13 +6,36 @@ interface ApiResponse<T = any> {
   pagination?: any;
   message?: string;
   errors?: any[];
+  code?: string;
+}
+
+interface QueuedRequest {
+  resolve: (token: string) => void;
+  reject: (error: any) => void;
 }
 
 class ApiClient {
   private accessToken: string | null = null;
+  private isRefreshing = false;
+  private failedQueue: QueuedRequest[] = [];
 
   setAccessToken(token: string | null) {
     this.accessToken = token;
+  }
+
+  getAccessToken(): string | null {
+    return this.accessToken;
+  }
+
+  private processQueue(error: any, token: string | null) {
+    this.failedQueue.forEach(({ resolve, reject }) => {
+      if (error || !token) {
+        reject(error);
+      } else {
+        resolve(token);
+      }
+    });
+    this.failedQueue = [];
   }
 
   private buildQueryString(params?: Record<string, any>): string {
@@ -29,7 +52,8 @@ class ApiClient {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    _retryCount = 0
   ): Promise<ApiResponse<T>> {
     const url = `${API_BASE_URL}${endpoint}`;
 
@@ -49,6 +73,24 @@ class ApiClient {
         credentials: 'include',
       });
 
+      // Handle 401 with automatic token refresh
+      if (response.status === 401 && _retryCount === 0) {
+        const body = await response.clone().json().catch(() => ({}));
+        const code = body?.code;
+
+        // Don't refresh for login/register/refresh-token endpoints
+        if (endpoint.includes('/auth/login') || endpoint.includes('/auth/register') || endpoint.includes('/auth/refresh-token')) {
+          // Fall through to error handling below
+        } else if (code === 'TOKEN_EXPIRED' || code === 'TOKEN_INVALID') {
+          return this.handleTokenRefresh(endpoint, options, _retryCount);
+        } else {
+          // Other 401 (unauthorized, etc.) - force logout
+          const { useAuthStore } = await import('../stores/authStore');
+          useAuthStore.getState().forceLogout();
+          throw { status: 401, message: body?.message || 'Sesión expirada' };
+        }
+      }
+
       const data = await response.json();
 
       if (!response.ok) {
@@ -57,6 +99,7 @@ class ApiClient {
           status: response.status,
           message,
           errors: data?.errors,
+          code: data?.code,
         };
       }
 
@@ -69,6 +112,56 @@ class ApiClient {
         status: 500,
         message: 'Error de conexión con el servidor',
       };
+    }
+  }
+
+  private async handleTokenRefresh<T>(
+    endpoint: string,
+    options: RequestInit,
+    retryCount: number
+  ): Promise<ApiResponse<T>> {
+    if (this.isRefreshing) {
+      // Queue this request while refresh is in progress
+      return new Promise<ApiResponse<T>>((resolve, reject) => {
+        this.failedQueue.push({
+          resolve: (token: string) => {
+            // Retry with new token
+            const headers: Record<string, string> = {
+              'Content-Type': 'application/json',
+              ...((options.headers as Record<string, string>) || {}),
+              Authorization: `Bearer ${token}`,
+            };
+            fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers, credentials: 'include' })
+              .then((r) => r.json())
+              .then(resolve)
+              .catch(reject);
+          },
+          reject,
+        });
+      });
+    }
+
+    this.isRefreshing = true;
+
+    try {
+      const newToken = await this.refreshAccessToken();
+      if (newToken) {
+        this.processQueue(null, newToken);
+        // Retry original request
+        return this.request<T>(endpoint, options, retryCount + 1);
+      } else {
+        this.processQueue(new Error('Refresh failed'), null);
+        const { useAuthStore } = await import('../stores/authStore');
+        useAuthStore.getState().forceLogout();
+        throw { status: 401, message: 'Sesión expirada. Inicia sesión nuevamente.' };
+      }
+    } catch (error) {
+      this.processQueue(error, null);
+      const { useAuthStore } = await import('../stores/authStore');
+      useAuthStore.getState().forceLogout();
+      throw { status: 401, message: 'Sesión expirada. Inicia sesión nuevamente.' };
+    } finally {
+      this.isRefreshing = false;
     }
   }
 
@@ -111,7 +204,11 @@ class ApiClient {
 
       if (response.ok) {
         const data = await response.json();
-        return data.data?.accessToken || null;
+        const newToken = data.data?.accessToken || null;
+        if (newToken) {
+          this.accessToken = newToken;
+        }
+        return newToken;
       }
     } catch {
       // Ignore refresh errors

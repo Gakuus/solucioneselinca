@@ -19,10 +19,49 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  forceLogout: () => void;
   refreshToken: () => Promise<void>;
   clearError: () => void;
   updateProfile: (data: UpdateProfileData) => Promise<void>;
   changePassword: (data: ChangePasswordData) => Promise<void>;
+}
+
+// Decode JWT to get expiry (no verification, just for timing)
+function getTokenExpiry(token: string): number | null {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.exp ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+// Proactive refresh timer
+let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+function scheduleProactiveRefresh(token: string, refreshFn: () => Promise<void>) {
+  clearProactiveRefresh();
+  const expiry = getTokenExpiry(token);
+  if (!expiry) return;
+
+  // Refresh 60 seconds before expiry
+  const refreshAt = expiry - Date.now() - 60_000;
+  if (refreshAt <= 0) {
+    // Already expired, refresh immediately
+    refreshFn();
+    return;
+  }
+
+  refreshTimer = setTimeout(async () => {
+    await refreshFn();
+  }, refreshAt);
+}
+
+function clearProactiveRefresh() {
+  if (refreshTimer) {
+    clearTimeout(refreshTimer);
+    refreshTimer = null;
+  }
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -47,6 +86,9 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             isLoading: false,
           });
+
+          // Schedule proactive refresh
+          scheduleProactiveRefresh(accessToken, get().refreshToken);
         } catch (error: any) {
           set({
             isLoading: false,
@@ -69,6 +111,8 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             isLoading: false,
           });
+
+          scheduleProactiveRefresh(accessToken, get().refreshToken);
         } catch (error: any) {
           set({
             isLoading: false,
@@ -79,6 +123,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: async () => {
+        clearProactiveRefresh();
         try {
           await api.post('/auth/logout');
         } catch {
@@ -93,18 +138,28 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
+      forceLogout: () => {
+        clearProactiveRefresh();
+        api.setAccessToken(null);
+        set({
+          user: null,
+          token: null,
+          isAuthenticated: false,
+        });
+      },
+
       refreshToken: async () => {
         try {
           const newToken = await api.refreshAccessToken();
           if (newToken) {
             api.setAccessToken(newToken);
             set({ token: newToken });
+            scheduleProactiveRefresh(newToken, get().refreshToken);
           } else {
-            // Refresh failed, logout
-            get().logout();
+            get().forceLogout();
           }
         } catch {
-          get().logout();
+          get().forceLogout();
         }
       },
 
@@ -132,13 +187,21 @@ export const useAuthStore = create<AuthState>()(
       name: 'auth-storage',
       partialize: (state) => ({
         user: state.user,
-        token: state.token,
         isAuthenticated: state.isAuthenticated,
       }),
       onRehydrateStorage: () => (state) => {
-        // Restore token in API client on rehydration
-        if (state?.token) {
-          api.setAccessToken(state.token);
+        // On page reload, try to get a fresh access token from the refresh cookie
+        if (state?.isAuthenticated && state?.user) {
+          api.refreshAccessToken().then((newToken) => {
+            if (newToken) {
+              api.setAccessToken(newToken);
+              useAuthStore.setState({ token: newToken });
+              scheduleProactiveRefresh(newToken, useAuthStore.getState().refreshToken);
+            } else {
+              // Refresh cookie expired or invalid - force logout
+              useAuthStore.getState().forceLogout();
+            }
+          });
         }
       },
     }

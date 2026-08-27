@@ -38,10 +38,10 @@ export const authenticate = (req: Request, _res: Response, next: NextFunction) =
     next();
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
-      return next(new UnauthorizedError('Token expirado'));
+      return next(new UnauthorizedError('Token expirado', 'TOKEN_EXPIRED'));
     }
     if (error instanceof jwt.JsonWebTokenError) {
-      return next(new UnauthorizedError('Token inválido'));
+      return next(new UnauthorizedError('Token inválido', 'TOKEN_INVALID'));
     }
     next(error);
   }
