@@ -4,6 +4,7 @@ import {
   createMachineSchema,
   updateMachineSchema,
   machineQuerySchema,
+  changeStatusSchema,
 } from './machines.validation';
 import { ZodError } from 'zod';
 
@@ -86,6 +87,28 @@ export class MachinesController {
     }
   }
 
+  async changeStatus(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const data = changeStatusSchema.parse(req.body);
+      const machine = await machinesService.changeStatus(id, data.status, data.reason);
+
+      res.json({
+        status: 'success',
+        data: machine,
+      });
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Datos inválidos',
+          errors: error.errors,
+        });
+      }
+      next(error);
+    }
+  }
+
   async delete(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
@@ -95,6 +118,40 @@ export class MachinesController {
         status: 'success',
         message: 'Máquina eliminada exitosamente',
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getHistory(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const history = await machinesService.getHistory(id);
+
+      res.json({
+        status: 'success',
+        data: history,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async exportCSV(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { search, status, machineTypeId, sortBy, sortOrder } = req.query;
+
+      const csv = await machinesService.exportCSV({
+        search: search as string,
+        status: status as string,
+        machineTypeId: machineTypeId as string,
+        sortBy: (sortBy as 'code' | 'name' | 'createdAt' | 'updatedAt') || 'code',
+        sortOrder: (sortOrder as 'asc' | 'desc') || 'asc',
+      });
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=machines.csv');
+      res.send(csv);
     } catch (error) {
       next(error);
     }

@@ -31,6 +31,12 @@ export const machineQuerySchema = z.object({
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });
 
+export const changeStatusSchema = z.object({
+  status: z.enum(['ACTIVE', 'INACTIVE', 'MAINTENANCE', 'RETIRED']),
+  reason: z.string().max(500).optional(),
+});
+
 export type CreateMachineInput = z.infer<typeof createMachineSchema>;
 export type UpdateMachineInput = z.infer<typeof updateMachineSchema>;
 export type MachineQueryInput = z.infer<typeof machineQuerySchema>;
+export type ChangeStatusInput = z.infer<typeof changeStatusSchema>;

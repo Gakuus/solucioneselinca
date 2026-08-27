@@ -15,6 +15,7 @@ import authRouter from './modules/auth/auth.routes';
 import machinesRouter from './modules/machines/machines.routes';
 import usersRouter from './modules/users/users.routes';
 import dashboardRouter from './modules/dashboard/dashboard.routes';
+import catalogsRouter from './modules/catalogs/catalogs.routes';
 
 async function bootstrap() {
   const config = loadConfig();
@@ -44,6 +45,9 @@ async function bootstrap() {
 
   // Dashboard routes
   app.use('/api/v1/dashboard', dashboardRouter);
+
+  // Catalogs routes
+  app.use('/api/v1/catalogs', catalogsRouter);
 
   app.use(errorHandler);
 

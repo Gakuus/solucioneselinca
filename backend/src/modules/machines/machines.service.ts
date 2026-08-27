@@ -1,6 +1,14 @@
 import { prisma } from '../../config/database';
-import { NotFoundError, ConflictError } from '../../shared/errors/AppError';
+import { NotFoundError, ConflictError, BadRequestError } from '../../shared/errors/AppError';
 import type { CreateMachineInput, UpdateMachineInput, MachineQueryInput } from './machines.validation';
+
+// State transition rules
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  ACTIVE: ['INACTIVE', 'MAINTENANCE', 'RETIRED'],
+  INACTIVE: ['ACTIVE'],
+  MAINTENANCE: ['ACTIVE', 'INACTIVE'],
+  RETIRED: [], // Final state
+};
 
 export class MachinesService {
   async findAll(query: MachineQueryInput) {
@@ -14,6 +22,7 @@ export class MachinesService {
         { name: { contains: search, mode: 'insensitive' } },
         { brand: { contains: search, mode: 'insensitive' } },
         { model: { contains: search, mode: 'insensitive' } },
+        { serialNumber: { contains: search, mode: 'insensitive' } },
       ];
     }
 
@@ -159,7 +168,6 @@ export class MachinesService {
         ...(data.model !== undefined && { model: data.model }),
         ...(data.year !== undefined && { year: data.year }),
         ...(data.serialNumber !== undefined && { serialNumber: data.serialNumber }),
-        ...(data.status && { status: data.status }),
         ...(data.purchaseDate !== undefined && {
           purchaseDate: data.purchaseDate ? new Date(data.purchaseDate) : null,
         }),
@@ -177,25 +185,121 @@ export class MachinesService {
     return machine;
   }
 
-  async delete(id: string) {
+  async changeStatus(id: string, newStatus: string, reason?: string) {
     const machine = await prisma.machine.findUnique({
       where: { id },
-      include: {
-        maintenances: { take: 1 },
-      },
     });
 
     if (!machine) {
       throw new NotFoundError('Máquina no encontrada');
     }
 
-    if (machine.maintenances.length > 0) {
-      throw new ConflictError(
-        'No se puede eliminar la máquina porque tiene registros de mantenimiento asociados'
+    // Validate state transition
+    const allowedTransitions = VALID_TRANSITIONS[machine.status] || [];
+    if (!allowedTransitions.includes(newStatus)) {
+      throw new BadRequestError(
+        `No se puede cambiar de ${machine.status} a ${newStatus}. Transiciones válidas: ${allowedTransitions.join(', ') || 'Ninguna'}`
       );
     }
 
-    await prisma.machine.delete({ where: { id } });
+    // RETIRED requires a reason
+    if (newStatus === 'RETIRED' && !reason) {
+      throw new BadRequestError('Se requiere un motivo para dar de baja la máquina');
+    }
+
+    const updatedMachine = await prisma.machine.update({
+      where: { id },
+      data: {
+        status: newStatus as any,
+        ...(newStatus === 'RETIRED' && { notes: `Baja: ${reason}` }),
+      },
+      include: {
+        machineType: true,
+      },
+    });
+
+    return updatedMachine;
+  }
+
+  async getHistory(id: string) {
+    const machine = await prisma.machine.findUnique({
+      where: { id },
+    });
+
+    if (!machine) {
+      throw new NotFoundError('Máquina no encontrada');
+    }
+
+    const maintenances = await prisma.maintenance.findMany({
+      where: { machineId: id },
+      orderBy: { scheduledDate: 'desc' },
+      include: {
+        maintenanceType: true,
+        technician: {
+          select: { id: true, name: true },
+        },
+        items: true,
+      },
+    });
+
+    return {
+      machine: {
+        id: machine.id,
+        code: machine.code,
+        name: machine.name,
+      },
+      maintenances,
+    };
+  }
+
+  async exportCSV(query: Omit<MachineQueryInput, 'page' | 'limit'>) {
+    const { search, status, machineTypeId, sortBy, sortOrder } = query;
+
+    const where: any = {};
+
+    if (search) {
+      where.OR = [
+        { code: { contains: search, mode: 'insensitive' } },
+        { name: { contains: search, mode: 'insensitive' } },
+        { brand: { contains: search, mode: 'insensitive' } },
+        { model: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (machineTypeId) {
+      where.machineTypeId = machineTypeId;
+    }
+
+    const machines = await prisma.machine.findMany({
+      where,
+      include: {
+        machineType: {
+          select: { name: true },
+        },
+      },
+      orderBy: { [sortBy]: sortOrder },
+    });
+
+    // Build CSV
+    const headers = ['Código', 'Nombre', 'Tipo', 'Marca', 'Modelo', 'Año', 'Estado', 'Ubicación'];
+    const rows = machines.map((m) => [
+      m.code,
+      m.name,
+      m.machineType?.name || '',
+      m.brand || '',
+      m.model || '',
+      m.year?.toString() || '',
+      m.status,
+      m.location || '',
+    ]);
+
+    const csv = [headers.join(','), ...rows.map((r) => r.map((c) => `"${c}"`).join(','))].join('\n');
+
+    return csv;
   }
 
   async getMachineTypes() {

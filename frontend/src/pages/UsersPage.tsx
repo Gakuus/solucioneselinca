@@ -1,16 +1,426 @@
+import { useState, useEffect } from 'react';
+import { usersApi, User } from '../services/users';
+import { useAuthStore } from '../stores/authStore';
+
 export function UsersPage() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const { user: currentUser } = useAuthStore();
+
+  useEffect(() => {
+    loadUsers();
+  }, [currentPage, search, roleFilter]);
+
+  const loadUsers = async () => {
+    try {
+      setIsLoading(true);
+      const response = await usersApi.getAll({
+        page: currentPage,
+        limit: 10,
+        search: search || undefined,
+        role: roleFilter || undefined,
+      });
+      setUsers(response.data);
+      setTotalPages(response.pagination.totalPages);
+    } catch (err: any) {
+      setError(err.message || 'Error al cargar usuarios');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('¿Estás seguro de eliminar este usuario?')) return;
+
+    try {
+      await usersApi.delete(id);
+      loadUsers();
+    } catch (err: any) {
+      setError(err.message || 'Error al eliminar usuario');
+    }
+  };
+
+  const handleToggleActive = async (user: User) => {
+    try {
+      await usersApi.update(user.id, { isActive: !user.isActive });
+      loadUsers();
+    } catch (err: any) {
+      setError(err.message || 'Error al actualizar usuario');
+    }
+  };
+
+  const getRoleBadge = (role: string) => {
+    const styles: Record<string, string> = {
+      ADMIN: 'bg-purple-100 text-purple-800',
+      SUPERVISOR: 'bg-blue-100 text-blue-800',
+      TECHNICIAN: 'bg-green-100 text-green-800',
+      VIEWER: 'bg-gray-100 text-gray-800',
+    };
+
+    const labels: Record<string, string> = {
+      ADMIN: 'Administrador',
+      SUPERVISOR: 'Supervisor',
+      TECHNICIAN: 'Técnico',
+      VIEWER: 'Visualizador',
+    };
+
+    return (
+      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${styles[role] || 'bg-gray-100'}`}>
+        {labels[role] || role}
+      </span>
+    );
+  };
+
+  const isAdmin = currentUser?.role === 'ADMIN';
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Usuarios</h1>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-          + Nuevo Usuario
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => {
+              setSelectedUser(null);
+              setIsFormOpen(true);
+            }}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          >
+            + Nuevo Usuario
+          </button>
+        )}
       </div>
-      <div className="bg-white rounded-lg shadow p-6">
-        <p className="text-gray-500 text-center py-12">
-          [Gestión de usuarios con CRUD completo]
-        </p>
+
+      {error && (
+        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          {error}
+          <button onClick={() => setError(null)} className="ml-2 underline">
+            Cerrar
+          </button>
+        </div>
+      )}
+
+      {/* Filters */}
+      <div className="bg-white rounded-lg shadow p-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <input
+            type="text"
+            placeholder="Buscar por nombre o email..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <select
+            value={roleFilter}
+            onChange={(e) => {
+              setRoleFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Todos los roles</option>
+            <option value="ADMIN">Administrador</option>
+            <option value="SUPERVISOR">Supervisor</option>
+            <option value="TECHNICIAN">Técnico</option>
+            <option value="VIEWER">Visualizador</option>
+          </select>
+          <button
+            onClick={() => {
+              setSearch('');
+              setRoleFilter('');
+              setCurrentPage(1);
+            }}
+            className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            Limpiar Filtros
+          </button>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        {isLoading ? (
+          <div className="p-6 text-center text-gray-500">Cargando...</div>
+        ) : users.length === 0 ? (
+          <div className="p-6 text-center text-gray-500">No se encontraron usuarios</div>
+        ) : (
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rol</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Último Acceso</th>
+                {isAdmin && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                )}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {users.map((user) => (
+                <tr key={user.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap font-medium">{user.name}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{user.email}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{getRoleBadge(user.role)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      {user.isActive ? 'Activo' : 'Inactivo'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {user.lastLoginAt
+                      ? new Date(user.lastLoginAt).toLocaleDateString()
+                      : 'Nunca'}
+                  </td>
+                  {isAdmin && (
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <button
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setIsFormOpen(true);
+                        }}
+                        className="text-blue-600 hover:text-blue-900 mr-3"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => handleToggleActive(user)}
+                        className={`mr-3 ${
+                          user.isActive ? 'text-yellow-600 hover:text-yellow-900' : 'text-green-600 hover:text-green-900'
+                        }`}
+                      >
+                        {user.isActive ? 'Desactivar' : 'Activar'}
+                      </button>
+                      {user.id !== currentUser?.id && (
+                        <button
+                          onClick={() => handleDelete(user.id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Eliminar
+                        </button>
+                      )}
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <p className="text-sm text-gray-700">
+                Página <span className="font-medium">{currentPage}</span> de{' '}
+                <span className="font-medium">{totalPages}</span>
+              </p>
+              <div className="flex space-x-2">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const page = i + 1;
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-1 border rounded ${
+                        currentPage === page
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-white text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* User Form Modal */}
+      {isFormOpen && (
+        <UserFormModal
+          user={selectedUser}
+          onClose={() => {
+            setIsFormOpen(false);
+            setSelectedUser(null);
+          }}
+          onSave={() => {
+            setIsFormOpen(false);
+            setSelectedUser(null);
+            loadUsers();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function UserFormModal({
+  user,
+  onClose,
+  onSave,
+}: {
+  user: User | null;
+  onClose: () => void;
+  onSave: () => void;
+}) {
+  const [formData, setFormData] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    password: '',
+    role: user?.role || 'VIEWER',
+    isActive: user?.isActive ?? true,
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      if (user) {
+        // Update
+        await usersApi.update(user.id, {
+          name: formData.name,
+          email: formData.email,
+          role: formData.role as any,
+          isActive: formData.isActive,
+        });
+      } else {
+        // Create
+        if (!formData.password) {
+          setError('La contraseña es requerida para nuevos usuarios');
+          setIsLoading(false);
+          return;
+        }
+        await usersApi.create({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          role: formData.role as any,
+        });
+      }
+      onSave();
+    } catch (err: any) {
+      setError(err.message || 'Error al guardar usuario');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-96">
+        <h2 className="text-lg font-semibold mb-4">
+          {user ? 'Editar Usuario' : 'Nuevo Usuario'}
+        </h2>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          {!user && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+              <input
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required={!user}
+                minLength={8}
+              />
+            </div>
+          )}
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
+            <select
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="ADMIN">Administrador</option>
+              <option value="SUPERVISOR">Supervisor</option>
+              <option value="TECHNICIAN">Técnico</option>
+              <option value="VIEWER">Visualizador</option>
+            </select>
+          </div>
+
+          {user && (
+            <div className="mb-4">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={formData.isActive}
+                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                  className="mr-2"
+                />
+                <span className="text-sm text-gray-700">Activo</span>
+              </label>
+            </div>
+          )}
+
+          <div className="flex justify-end space-x-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            >
+              {isLoading ? 'Guardando...' : 'Guardar'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

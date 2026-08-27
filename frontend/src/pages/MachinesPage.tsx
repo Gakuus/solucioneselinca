@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { machinesApi, Machine, MachineType } from '../services/machines';
 import { useAuthStore } from '../stores/authStore';
 
@@ -9,14 +9,18 @@ export function MachinesPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const { user } = useAuthStore();
 
   useEffect(() => {
     loadMachines();
     loadMachineTypes();
-  }, [currentPage, search, statusFilter]);
+  }, [currentPage, search, statusFilter, typeFilter]);
 
   const loadMachines = async () => {
     try {
@@ -26,6 +30,7 @@ export function MachinesPage() {
         limit: 10,
         search: search || undefined,
         status: statusFilter || undefined,
+        machineTypeId: typeFilter || undefined,
       });
       setMachines(response.data);
       setTotalPages(response.pagination.totalPages);
@@ -53,6 +58,38 @@ export function MachinesPage() {
       loadMachines();
     } catch (err: any) {
       setError(err.message || 'Error al eliminar máquina');
+    }
+  };
+
+  const handleExportCSV = async () => {
+    try {
+      const blob = await machinesApi.exportCSV({
+        search: search || undefined,
+        status: statusFilter || undefined,
+        machineTypeId: typeFilter || undefined,
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'maquinas.csv';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setError(err.message || 'Error al exportar');
+    }
+  };
+
+  const handleStatusChange = async (newStatus: string, reason?: string) => {
+    if (!selectedMachine) return;
+
+    try {
+      await machinesApi.changeStatus(selectedMachine.id, newStatus, reason);
+      setIsStatusModalOpen(false);
+      setSelectedMachine(null);
+      loadMachines();
+    } catch (err: any) {
+      setError(err.message || 'Error al cambiar estado');
     }
   };
 
@@ -85,11 +122,25 @@ export function MachinesPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Máquinas</h1>
-        {canEdit && (
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-            + Nueva Máquina
+        <div className="flex space-x-2">
+          <button
+            onClick={handleExportCSV}
+            className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
+          >
+            Exportar CSV
           </button>
-        )}
+          {canEdit && (
+            <button
+              onClick={() => {
+                setSelectedMachine(null);
+                setIsFormOpen(true);
+              }}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            >
+              + Nueva Máquina
+            </button>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -103,10 +154,10 @@ export function MachinesPage() {
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow p-4 mb-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <input
             type="text"
-            placeholder="Buscar por código, nombre o marca..."
+            placeholder="Buscar por código, nombre, marca..."
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -128,7 +179,14 @@ export function MachinesPage() {
             <option value="MAINTENANCE">Mantenimiento</option>
             <option value="RETIRED">Retirada</option>
           </select>
-          <select className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <select
+            value={typeFilter}
+            onChange={(e) => {
+              setTypeFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
             <option value="">Todos los tipos</option>
             {machineTypes.map((type) => (
               <option key={type.id} value={type.id}>
@@ -136,6 +194,17 @@ export function MachinesPage() {
               </option>
             ))}
           </select>
+          <button
+            onClick={() => {
+              setSearch('');
+              setStatusFilter('');
+              setTypeFilter('');
+              setCurrentPage(1);
+            }}
+            className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            Limpiar Filtros
+          </button>
         </div>
       </div>
 
@@ -168,7 +237,26 @@ export function MachinesPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <button className="text-blue-600 hover:text-blue-900 mr-3">Ver</button>
                     {canEdit && (
-                      <button className="text-gray-600 hover:text-gray-900 mr-3">Editar</button>
+                      <>
+                        <button
+                          onClick={() => {
+                            setSelectedMachine(machine);
+                            setIsFormOpen(true);
+                          }}
+                          className="text-gray-600 hover:text-gray-900 mr-3"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedMachine(machine);
+                            setIsStatusModalOpen(true);
+                          }}
+                          className="text-yellow-600 hover:text-yellow-900 mr-3"
+                        >
+                          Estado
+                        </button>
+                      </>
                     )}
                     {canDelete && (
                       <button
@@ -229,6 +317,118 @@ export function MachinesPage() {
               </div>
             </div>
           </div>
+        )}
+      </div>
+
+      {/* Status Change Modal */}
+      {isStatusModalOpen && selectedMachine && (
+        <StatusChangeModal
+          machine={selectedMachine}
+          onClose={() => {
+            setIsStatusModalOpen(false);
+            setSelectedMachine(null);
+          }}
+          onChange={handleStatusChange}
+        />
+      )}
+    </div>
+  );
+}
+
+function StatusChangeModal({
+  machine,
+  onClose,
+  onChange,
+}: {
+  machine: Machine;
+  onClose: () => void;
+  onChange: (status: string, reason?: string) => void;
+}) {
+  const [status, setStatus] = useState('');
+  const [reason, setReason] = useState('');
+
+  const VALID_TRANSITIONS: Record<string, string[]> = {
+    ACTIVE: ['INACTIVE', 'MAINTENANCE', 'RETIRED'],
+    INACTIVE: ['ACTIVE'],
+    MAINTENANCE: ['ACTIVE', 'INACTIVE'],
+    RETIRED: [],
+  };
+
+  const allowedTransitions = VALID_TRANSITIONS[machine.status] || [];
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onChange(status, reason || undefined);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-96">
+        <h2 className="text-lg font-semibold mb-4">Cambiar Estado</h2>
+        <p className="text-sm text-gray-600 mb-4">
+          Máquina: {machine.code} - {machine.name}
+        </p>
+        <p className="text-sm text-gray-600 mb-4">
+          Estado actual: <span className="font-medium">{machine.status}</span>
+        </p>
+
+        {allowedTransitions.length === 0 ? (
+          <p className="text-red-600 mb-4">
+            Este máquina está en estado final y no puede cambiar de estado.
+          </p>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nuevo Estado
+              </label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="">Seleccionar estado</option>
+                {allowedTransitions.map((s) => (
+                  <option key={s} value={s}>
+                    {s === 'ACTIVE' ? 'Activa' : s === 'INACTIVE' ? 'Inactiva' : s === 'MAINTENANCE' ? 'Mantenimiento' : 'Retirada'}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {status === 'RETIRED' && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Motivo (obligatorio)
+                </label>
+                <textarea
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows={3}
+                  required
+                />
+              </div>
+            )}
+
+            <div className="flex justify-end space-x-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={!status}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                Cambiar Estado
+              </button>
+            </div>
+          </form>
         )}
       </div>
     </div>
