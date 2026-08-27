@@ -1,13 +1,10 @@
 import { useState, useEffect } from 'react';
 import { reportsApi, DashboardStats } from '../services/reports';
-import { useAuthStore } from '../stores/authStore';
-
 export function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [period, setPeriod] = useState('month');
-  const { user } = useAuthStore();
 
   useEffect(() => {
     loadStats();

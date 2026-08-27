@@ -119,22 +119,22 @@ export interface MaintenanceStats {
 export const maintenancesApi = {
   getAll: async (params?: MaintenanceQueryParams): Promise<PaginatedResponse<Maintenance>> => {
     const response = await api.get('/maintenances', { params });
-    return response;
+    return response as any;
   },
 
   getById: async (id: string): Promise<Maintenance> => {
-    const response = await api.get(`/maintenances/${id}`);
-    return response.data;
+    const response = await api.get<Maintenance>(`/maintenances/${id}`);
+    return response.data as Maintenance;
   },
 
   create: async (data: CreateMaintenanceData): Promise<Maintenance> => {
-    const response = await api.post('/maintenances', data);
-    return response.data;
+    const response = await api.post<Maintenance>('/maintenances', data);
+    return response.data as Maintenance;
   },
 
   update: async (id: string, data: UpdateMaintenanceData): Promise<Maintenance> => {
-    const response = await api.put(`/maintenances/${id}`, data);
-    return response.data;
+    const response = await api.put<Maintenance>(`/maintenances/${id}`, data);
+    return response.data as Maintenance;
   },
 
   changeStatus: async (
@@ -144,13 +144,13 @@ export const maintenancesApi = {
     completedHours?: number,
     observations?: string
   ): Promise<Maintenance> => {
-    const response = await api.patch(`/maintenances/${id}/status`, {
+    const response = await api.patch<Maintenance>(`/maintenances/${id}/status`, {
       status,
       reason,
       completedHours,
       observations,
     });
-    return response.data;
+    return response.data as Maintenance;
   },
 
   delete: async (id: string): Promise<void> => {
@@ -158,15 +158,15 @@ export const maintenancesApi = {
   },
 
   getStats: async (): Promise<MaintenanceStats> => {
-    const response = await api.get('/maintenances/stats');
-    return response.data;
+    const response = await api.get<MaintenanceStats>('/maintenances/stats');
+    return response.data as MaintenanceStats;
   },
 
   getCalendar: async (year: number, month: number): Promise<Maintenance[]> => {
-    const response = await api.get('/maintenances/calendar', {
+    const response = await api.get<Maintenance[]>('/maintenances/calendar', {
       params: { year, month },
     });
-    return response.data;
+    return response.data as Maintenance[];
   },
 
   addItem: async (maintenanceId: string, data: {
@@ -176,8 +176,8 @@ export const maintenancesApi = {
     supplier?: string;
     category?: string;
   }): Promise<MaintenanceItem> => {
-    const response = await api.post(`/maintenances/${maintenanceId}/items`, data);
-    return response.data;
+    const response = await api.post<MaintenanceItem>(`/maintenances/${maintenanceId}/items`, data);
+    return response.data as MaintenanceItem;
   },
 
   updateItem: async (maintenanceId: string, itemId: string, data: Partial<{
@@ -187,8 +187,8 @@ export const maintenancesApi = {
     supplier: string;
     category: string;
   }>): Promise<MaintenanceItem> => {
-    const response = await api.put(`/maintenances/${maintenanceId}/items/${itemId}`, data);
-    return response.data;
+    const response = await api.put<MaintenanceItem>(`/maintenances/${maintenanceId}/items/${itemId}`, data);
+    return response.data as MaintenanceItem;
   },
 
   deleteItem: async (maintenanceId: string, itemId: string): Promise<void> => {

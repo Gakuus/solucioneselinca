@@ -66,28 +66,28 @@ export interface PaginatedResponse<T> {
 
 export const alertsApi = {
   getAll: async (params?: AlertQueryParams): Promise<PaginatedResponse<Alert>> => {
-    const response = await api.get('/alerts', { params });
-    return response;
+    const response = await api.get<{ data: Alert[]; pagination: PaginatedResponse<Alert>['pagination'] }>('/alerts', { params });
+    return response.data as PaginatedResponse<Alert>;
   },
 
   getById: async (id: string): Promise<Alert> => {
-    const response = await api.get(`/alerts/${id}`);
-    return response.data;
+    const response = await api.get<{ id: string }>(`/alerts/${id}`);
+    return response.data as Alert;
   },
 
   create: async (data: CreateAlertData): Promise<Alert> => {
-    const response = await api.post('/alerts', data);
-    return response.data;
+    const response = await api.post<{ id: string }>('/alerts', data);
+    return response.data as Alert;
   },
 
   markAsRead: async (id: string): Promise<Alert> => {
-    const response = await api.patch(`/alerts/${id}/read`);
-    return response.data;
+    const response = await api.patch<{ id: string }>(`/alerts/${id}/read`);
+    return response.data as Alert;
   },
 
   markAllAsRead: async (): Promise<{ message: string }> => {
-    const response = await api.patch('/alerts/read-all');
-    return response.data;
+    const response = await api.patch<{ message: string }>('/alerts/read-all');
+    return response.data as { message: string };
   },
 
   delete: async (id: string): Promise<void> => {
@@ -95,12 +95,12 @@ export const alertsApi = {
   },
 
   getStats: async (): Promise<AlertStats> => {
-    const response = await api.get('/alerts/stats');
-    return response.data;
+    const response = await api.get<AlertStats>('/alerts/stats');
+    return response.data as AlertStats;
   },
 
   checkUpcoming: async (): Promise<{ created: number }> => {
-    const response = await api.post('/alerts/check-upcoming');
-    return response.data;
+    const response = await api.post<{ created: number }>('/alerts/check-upcoming');
+    return response.data as { created: number };
   },
 };

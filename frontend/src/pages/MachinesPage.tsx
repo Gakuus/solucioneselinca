@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { machinesApi, Machine, MachineType } from '../services/machines';
 import { useAuthStore } from '../stores/authStore';
 
@@ -13,7 +13,6 @@ export function MachinesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null);
-  const [isFormOpen, setIsFormOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const { user } = useAuthStore();
 
@@ -133,7 +132,7 @@ export function MachinesPage() {
             <button
               onClick={() => {
                 setSelectedMachine(null);
-                setIsFormOpen(true);
+                alert('Formulario de creación no disponible aún');
               }}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
             >
@@ -241,7 +240,7 @@ export function MachinesPage() {
                         <button
                           onClick={() => {
                             setSelectedMachine(machine);
-                            setIsFormOpen(true);
+                            alert('Formulario de edición no disponible aún');
                           }}
                           className="text-gray-600 hover:text-gray-900 mr-3"
                         >

@@ -81,22 +81,22 @@ export interface PaginatedResponse<T> {
 export const schedulingApi = {
   getAll: async (params?: ScheduleQueryParams): Promise<PaginatedResponse<Schedule>> => {
     const response = await api.get('/scheduling', { params });
-    return response;
+    return response as any;
   },
 
   getById: async (id: string): Promise<Schedule> => {
-    const response = await api.get(`/scheduling/${id}`);
-    return response.data;
+    const response = await api.get<Schedule>(`/scheduling/${id}`);
+    return response.data as Schedule;
   },
 
   create: async (data: CreateScheduleData): Promise<Schedule> => {
-    const response = await api.post('/scheduling', data);
-    return response.data;
+    const response = await api.post<Schedule>('/scheduling', data);
+    return response.data as Schedule;
   },
 
   update: async (id: string, data: UpdateScheduleData): Promise<Schedule> => {
-    const response = await api.put(`/scheduling/${id}`, data);
-    return response.data;
+    const response = await api.put<Schedule>(`/scheduling/${id}`, data);
+    return response.data as Schedule;
   },
 
   delete: async (id: string): Promise<void> => {
@@ -104,8 +104,8 @@ export const schedulingApi = {
   },
 
   toggleActive: async (id: string): Promise<Schedule> => {
-    const response = await api.patch(`/scheduling/${id}/toggle`);
-    return response.data;
+    const response = await api.patch<Schedule>(`/scheduling/${id}/toggle`);
+    return response.data as Schedule;
   },
 
   execute: async (id: string): Promise<any> => {
@@ -114,7 +114,7 @@ export const schedulingApi = {
   },
 
   getUpcoming: async (days?: number): Promise<Schedule[]> => {
-    const response = await api.get('/scheduling/upcoming', { params: { days } });
-    return response.data;
+    const response = await api.get<Schedule[]>('/scheduling/upcoming', { params: { days } });
+    return response.data as Schedule[];
   },
 };

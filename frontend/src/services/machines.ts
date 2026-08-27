@@ -111,23 +111,23 @@ export const machinesApi = {
   },
 
   getById: async (id: string): Promise<Machine> => {
-    const response = await api.get(`/machines/${id}`);
-    return response.data;
+    const response = await api.get<Machine>(`/machines/${id}`);
+    return response.data as Machine;
   },
 
   create: async (data: CreateMachineData): Promise<Machine> => {
-    const response = await api.post('/machines', data);
-    return response.data;
+    const response = await api.post<Machine>('/machines', data);
+    return response.data as Machine;
   },
 
   update: async (id: string, data: Partial<CreateMachineData>): Promise<Machine> => {
-    const response = await api.put(`/machines/${id}`, data);
-    return response.data;
+    const response = await api.put<Machine>(`/machines/${id}`, data);
+    return response.data as Machine;
   },
 
   changeStatus: async (id: string, status: string, reason?: string): Promise<Machine> => {
-    const response = await api.patch(`/machines/${id}/status`, { status, reason });
-    return response.data;
+    const response = await api.patch<Machine>(`/machines/${id}/status`, { status, reason });
+    return response.data as Machine;
   },
 
   delete: async (id: string): Promise<void> => {
@@ -135,8 +135,8 @@ export const machinesApi = {
   },
 
   getHistory: async (id: string): Promise<MachineHistory> => {
-    const response = await api.get(`/machines/${id}/history`);
-    return response.data;
+    const response = await api.get<MachineHistory>(`/machines/${id}/history`);
+    return response.data as MachineHistory;
   },
 
   exportCSV: async (filters?: MachineFilters): Promise<Blob> => {
@@ -161,7 +161,7 @@ export const machinesApi = {
   },
 
   getTypes: async (): Promise<MachineType[]> => {
-    const response = await api.get('/machines/types');
-    return response.data;
+    const response = await api.get<MachineType[]>('/machines/types');
+    return response.data as MachineType[];
   },
 };

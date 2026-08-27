@@ -56,17 +56,17 @@ export interface RecentMachine {
 
 export const dashboardApi = {
   getStats: async (): Promise<DashboardStats> => {
-    const response = await api.get('/dashboard/stats');
-    return response.data;
+    const response = await api.get<DashboardStats>('/dashboard/stats');
+    return response.data as DashboardStats;
   },
 
   getRecentMaintenances: async (): Promise<RecentMaintenance[]> => {
-    const response = await api.get('/dashboard/recent-maintenances');
-    return response.data;
+    const response = await api.get<RecentMaintenance[]>('/dashboard/recent-maintenances');
+    return response.data as RecentMaintenance[];
   },
 
   getRecentMachines: async (): Promise<RecentMachine[]> => {
-    const response = await api.get('/dashboard/recent-machines');
-    return response.data;
+    const response = await api.get<RecentMachine[]>('/dashboard/recent-machines');
+    return response.data as RecentMachine[];
   },
 };

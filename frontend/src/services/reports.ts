@@ -71,37 +71,50 @@ export interface ReportQueryParams {
   category?: string;
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
+
 export const reportsApi = {
   getDashboardStats: async (period: string = 'month'): Promise<DashboardStats> => {
-    const response = await api.get('/reports/dashboard', { params: { period } });
-    return response.data;
+    const response = await api.get<DashboardStats>('/reports/dashboard', { params: { period } });
+    return response.data as DashboardStats;
   },
 
   getMaintenanceReport: async (params: ReportQueryParams): Promise<MaintenanceReport> => {
-    const response = await api.get('/reports/maintenance', { params });
-    return response.data;
+    const response = await api.get<MaintenanceReport>('/reports/maintenance', { params });
+    return response.data as MaintenanceReport;
   },
 
   getMachineReport: async (params: ReportQueryParams): Promise<MachineReport[]> => {
-    const response = await api.get('/reports/machine', { params });
-    return response.data;
+    const response = await api.get<MachineReport[]>('/reports/machine', { params });
+    return response.data as MachineReport[];
   },
 
   getTechnicianReport: async (params: ReportQueryParams): Promise<TechnicianReport[]> => {
-    const response = await api.get('/reports/technician', { params });
-    return response.data;
+    const response = await api.get<TechnicianReport[]>('/reports/technician', { params });
+    return response.data as TechnicianReport[];
   },
 
   getCostReport: async (params: ReportQueryParams): Promise<CostReport> => {
-    const response = await api.get('/reports/cost', { params });
-    return response.data;
+    const response = await api.get<CostReport>('/reports/cost', { params });
+    return response.data as CostReport;
   },
 
   exportCSV: async (type: string, params: ReportQueryParams): Promise<Blob> => {
-    const response = await api.get(`/reports/${type}`, {
-      params,
-      responseType: 'blob',
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') {
+        searchParams.append(key, String(value));
+      }
     });
-    return response.data;
+    const response = await fetch(
+      `${API_BASE_URL}/reports/${type}?${searchParams.toString()}`,
+      {
+        credentials: 'include',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('auth-storage') ? JSON.parse(localStorage.getItem('auth-storage')!).state?.token : ''}`,
+        },
+      }
+    );
+    return response.blob();
   },
 };

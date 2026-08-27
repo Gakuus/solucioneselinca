@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { maintenancesApi, Maintenance, MaintenanceStats } from '../services/maintenances';
-import { machinesApi, Machine } from '../services/machines';
-import { usersApi, User } from '../services/users';
-import { catalogsApi, MaintenanceType } from '../services/catalogs';
 
 export function MaintenancesPage() {
   const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
@@ -16,7 +13,6 @@ export function MaintenancesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedMaintenance, setSelectedMaintenance] = useState<Maintenance | null>(null);
-  const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const { user } = useAuthStore();
@@ -113,7 +109,7 @@ export function MaintenancesPage() {
           <button
             onClick={() => {
               setSelectedMaintenance(null);
-              setIsFormOpen(true);
+              alert('Formulario de creación no disponible aún');
             }}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
           >
@@ -271,7 +267,7 @@ export function MaintenancesPage() {
                         <button
                           onClick={() => {
                             setSelectedMaintenance(maintenance);
-                            setIsFormOpen(true);
+                            alert('Formulario de edición no disponible aún');
                           }}
                           className="text-gray-600 hover:text-gray-900 mr-3"
                         >

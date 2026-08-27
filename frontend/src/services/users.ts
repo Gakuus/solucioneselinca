@@ -69,18 +69,18 @@ export const usersApi = {
   },
 
   getById: async (id: string): Promise<User> => {
-    const response = await api.get(`/users/${id}`);
-    return response.data;
+    const response = await api.get<User>(`/users/${id}`);
+    return response.data as User;
   },
 
   create: async (data: CreateUserData): Promise<User> => {
-    const response = await api.post('/users', data);
-    return response.data;
+    const response = await api.post<User>('/users', data);
+    return response.data as User;
   },
 
   update: async (id: string, data: UpdateUserData): Promise<User> => {
-    const response = await api.put(`/users/${id}`, data);
-    return response.data;
+    const response = await api.put<User>(`/users/${id}`, data);
+    return response.data as User;
   },
 
   delete: async (id: string): Promise<void> => {
@@ -88,7 +88,7 @@ export const usersApi = {
   },
 
   getStats: async (): Promise<UserStats> => {
-    const response = await api.get('/users/stats');
-    return response.data;
+    const response = await api.get<UserStats>('/users/stats');
+    return response.data as UserStats;
   },
 };
