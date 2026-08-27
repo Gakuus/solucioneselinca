@@ -354,7 +354,14 @@ function UserFormModal({
       }
       onSave();
     } catch (err: any) {
-      setError(err.message || 'Error al guardar usuario');
+      const fieldErrors = Array.isArray(err?.errors)
+        ? err.errors.map((e: any) => e?.message).filter(Boolean)
+        : [];
+      setError(
+        fieldErrors.length
+          ? fieldErrors.join(' · ')
+          : err.message || 'Error al guardar usuario'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -405,8 +412,13 @@ function UserFormModal({
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                 required={!user}
-                minLength={8}
+                minLength={6}
               />
+              {!user && (
+                <p className="mt-1 text-xs text-gray-500">
+                  Mínimo 6 caracteres.
+                </p>
+              )}
             </div>
           )}
 
