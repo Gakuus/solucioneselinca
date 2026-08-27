@@ -4,10 +4,10 @@ import type { CreateMachineInput, UpdateMachineInput, MachineQueryInput } from '
 
 // State transition rules
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  ACTIVE: ['INACTIVE', 'MAINTENANCE', 'RETIRED'],
+  ACTIVE: ['INACTIVE', 'IN_MAINTENANCE', 'DECOMMISSIONED'],
   INACTIVE: ['ACTIVE'],
-  MAINTENANCE: ['ACTIVE', 'INACTIVE'],
-  RETIRED: [], // Final state
+  IN_MAINTENANCE: ['ACTIVE', 'INACTIVE'],
+  DECOMMISSIONED: [], // Final state
 };
 
 export class MachinesService {
@@ -67,7 +67,7 @@ export class MachinesService {
         machineType: true,
         maintenances: {
           take: 5,
-          orderBy: { scheduledDate: 'desc' },
+          orderBy: { receivedDate: 'desc' },
           include: {
             maintenanceType: true,
             technician: {
@@ -202,8 +202,8 @@ export class MachinesService {
       );
     }
 
-    // RETIRED requires a reason
-    if (newStatus === 'RETIRED' && !reason) {
+    // DECOMMISSIONED requires a reason
+    if (newStatus === 'DECOMMISSIONED' && !reason) {
       throw new BadRequestError('Se requiere un motivo para dar de baja la máquina');
     }
 
@@ -211,7 +211,7 @@ export class MachinesService {
       where: { id },
       data: {
         status: newStatus as any,
-        ...(newStatus === 'RETIRED' && { notes: `Baja: ${reason}` }),
+        ...(newStatus === 'DECOMMISSIONED' && { notes: `Baja: ${reason}` }),
       },
       include: {
         machineType: true,
@@ -232,7 +232,7 @@ export class MachinesService {
 
     const maintenances = await prisma.maintenance.findMany({
       where: { machineId: id },
-      orderBy: { scheduledDate: 'desc' },
+      orderBy: { receivedDate: 'desc' },
       include: {
         maintenanceType: true,
         technician: {

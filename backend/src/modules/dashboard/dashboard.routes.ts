@@ -22,9 +22,9 @@ router.get('/stats', async (_req, res, next) => {
     ] = await Promise.all([
       prisma.machine.count(),
       prisma.machine.count({ where: { status: 'ACTIVE' } }),
-      prisma.machine.count({ where: { status: 'MAINTENANCE' } }),
+      prisma.machine.count({ where: { status: 'IN_MAINTENANCE' } }),
       prisma.maintenance.count(),
-      prisma.maintenance.count({ where: { status: 'PENDING' } }),
+      prisma.maintenance.count({ where: { status: 'SCHEDULED' } }),
       prisma.maintenance.count({ where: { status: 'COMPLETED' } }),
       prisma.user.count(),
       prisma.user.count({ where: { isActive: true } }),

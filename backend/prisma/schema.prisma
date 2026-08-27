@@ -112,12 +112,13 @@ model Machine {
 }
 
 model MaintenanceType {
-  id            String              @id @default(uuid())
-  name          String              @unique
-  description   String?
-  isPreventive  Boolean             @default(true) @map("is_preventive")
-  isActive      Boolean             @default(true) @map("is_active")
-  createdAt     DateTime            @default(now()) @map("created_at")
+  id              String              @id @default(uuid())
+  name            String              @unique
+  description     String?
+  isPreventive    Boolean             @default(true) @map("is_preventive")
+  estimatedHours  Float?              @map("estimated_hours")
+  isActive        Boolean             @default(true) @map("is_active")
+  createdAt       DateTime            @default(now()) @map("created_at")
 
   maintenances    Maintenance[]
   schedules       MaintenanceSchedule[]

@@ -97,15 +97,15 @@ export function MachinesPage() {
     const styles: Record<string, string> = {
       ACTIVE: 'bg-green-100 text-green-800',
       INACTIVE: 'bg-gray-100 text-gray-800',
-      MAINTENANCE: 'bg-yellow-100 text-yellow-800',
-      RETIRED: 'bg-red-100 text-red-800',
+      IN_MAINTENANCE: 'bg-yellow-100 text-yellow-800',
+      DECOMMISSIONED: 'bg-red-100 text-red-800',
     };
 
     const labels: Record<string, string> = {
       ACTIVE: 'Activa',
       INACTIVE: 'Inactiva',
-      MAINTENANCE: 'Mantenimiento',
-      RETIRED: 'Retirada',
+      IN_MAINTENANCE: 'Mantenimiento',
+      DECOMMISSIONED: 'Retirada',
     };
 
     return (
@@ -176,8 +176,8 @@ export function MachinesPage() {
             <option value="">Todos los estados</option>
             <option value="ACTIVE">Activa</option>
             <option value="INACTIVE">Inactiva</option>
-            <option value="MAINTENANCE">Mantenimiento</option>
-            <option value="RETIRED">Retirada</option>
+            <option value="IN_MAINTENANCE">Mantenimiento</option>
+            <option value="DECOMMISSIONED">Retirada</option>
           </select>
           <select
             value={typeFilter}
@@ -348,10 +348,10 @@ function StatusChangeModal({
   const [reason, setReason] = useState('');
 
   const VALID_TRANSITIONS: Record<string, string[]> = {
-    ACTIVE: ['INACTIVE', 'MAINTENANCE', 'RETIRED'],
+    ACTIVE: ['INACTIVE', 'IN_MAINTENANCE', 'DECOMMISSIONED'],
     INACTIVE: ['ACTIVE'],
-    MAINTENANCE: ['ACTIVE', 'INACTIVE'],
-    RETIRED: [],
+    IN_MAINTENANCE: ['ACTIVE', 'INACTIVE'],
+    DECOMMISSIONED: [],
   };
 
   const allowedTransitions = VALID_TRANSITIONS[machine.status] || [];
@@ -391,13 +391,13 @@ function StatusChangeModal({
                 <option value="">Seleccionar estado</option>
                 {allowedTransitions.map((s) => (
                   <option key={s} value={s}>
-                    {s === 'ACTIVE' ? 'Activa' : s === 'INACTIVE' ? 'Inactiva' : s === 'MAINTENANCE' ? 'Mantenimiento' : 'Retirada'}
+                    {s === 'ACTIVE' ? 'Activa' : s === 'INACTIVE' ? 'Inactiva' : s === 'IN_MAINTENANCE' ? 'Mantenimiento' : 'Retirada'}
                   </option>
                 ))}
               </select>
             </div>
 
-            {status === 'RETIRED' && (
+            {status === 'DECOMMISSIONED' && (
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Motivo (obligatorio)

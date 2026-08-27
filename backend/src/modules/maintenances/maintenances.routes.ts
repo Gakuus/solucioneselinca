@@ -23,7 +23,6 @@ router.get(
 
 router.get(
   '/calendar',
-  validate({ query: maintenanceQuerySchema.pick({ startDate: true, endDate: true }) }),
   maintenancesController.getCalendar
 );
 

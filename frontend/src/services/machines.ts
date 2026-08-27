@@ -9,7 +9,7 @@ export interface Machine {
   model?: string;
   year?: number;
   serialNumber?: string;
-  status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE' | 'RETIRED';
+  status: 'ACTIVE' | 'INACTIVE' | 'IN_MAINTENANCE' | 'DECOMMISSIONED';
   purchaseDate?: string;
   warrantyExpiration?: string;
   location?: string;
