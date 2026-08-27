@@ -3,6 +3,7 @@ import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { MachinesPage } from './pages/MachinesPage';
 import { MaintenancesPage } from './pages/MaintenancesPage';
+import { SchedulingPage } from './pages/SchedulingPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { AlertsPage } from './pages/AlertsPage';
 import { UsersPage } from './pages/UsersPage';
@@ -28,6 +29,14 @@ function App() {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="machines" element={<MachinesPage />} />
           <Route path="maintenances" element={<MaintenancesPage />} />
+          <Route
+            path="scheduling"
+            element={
+              <ProtectedRoute requiredRoles={['ADMIN', 'SUPERVISOR', 'TECHNICIAN']}>
+                <SchedulingPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="reports" element={<ReportsPage />} />
           <Route path="alerts" element={<AlertsPage />} />
           <Route
