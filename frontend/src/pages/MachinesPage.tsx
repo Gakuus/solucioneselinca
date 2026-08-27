@@ -119,9 +119,9 @@ export function MachinesPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <h1 className="text-2xl font-bold">Máquinas</h1>
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={handleExportCSV}
             className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
@@ -214,6 +214,7 @@ export function MachinesPage() {
         ) : machines.length === 0 ? (
           <div className="p-6 text-center text-gray-500">No se encontraron máquinas</div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
@@ -270,6 +271,7 @@ export function MachinesPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
 
         {/* Pagination */}
@@ -362,7 +364,7 @@ function StatusChangeModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-96">
+      <div className="bg-white rounded-lg p-6 w-full max-w-lg mx-4">
         <h2 className="text-lg font-semibold mb-4">Cambiar Estado</h2>
         <p className="text-sm text-gray-600 mb-4">
           Máquina: {machine.code} - {machine.name}

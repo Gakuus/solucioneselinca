@@ -123,7 +123,7 @@ export function ReportsPage() {
       {/* Tabs */}
       <div className="bg-white rounded-lg shadow">
         <div className="border-b border-gray-200">
-          <nav className="flex space-x-8 px-6">
+          <nav className="flex space-x-8 px-6 overflow-x-auto">
             <button
               onClick={() => setActiveTab('maintenance')}
               className={`border-b-2 py-4 text-sm font-medium ${
@@ -208,7 +208,7 @@ function MaintenanceReportView({ report }: { report: MaintenanceReport }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="bg-gray-50 rounded-lg p-4">
           <h3 className="font-medium mb-2">Por Categoría</h3>
           <div className="flex space-x-4">

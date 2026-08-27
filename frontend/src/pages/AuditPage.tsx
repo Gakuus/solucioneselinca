@@ -192,6 +192,7 @@ export function AuditPage() {
         ) : logs.length === 0 ? (
           <div className="p-6 text-center text-gray-500">No se encontraron registros de auditoría</div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
@@ -233,6 +234,7 @@ export function AuditPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
 
         {/* Pagination */}
@@ -297,7 +299,7 @@ function AuditDetailModal({
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div>
             <label className="text-sm font-medium text-gray-500">Fecha</label>
             <p className="text-sm">{new Date(log.createdAt).toLocaleString()}</p>

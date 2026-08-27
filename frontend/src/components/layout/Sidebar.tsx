@@ -1,15 +1,15 @@
 import { NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Wrench, 
-  ClipboardList, 
-  Calendar, 
-  BarChart3, 
-  Bell, 
-  Users, 
-  FileText, 
+import { X,
+  LayoutDashboard,
+  Wrench,
+  ClipboardList,
+  Calendar,
+  BarChart3,
+  Bell,
+  Users,
+  FileText,
   Settings,
-  BookOpen 
+  BookOpen
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -26,16 +26,33 @@ const menuItems = [
   { path: '/config', label: 'Configuración', icon: Settings, roles: ['ADMIN'] },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user } = useAuthStore();
   const userRole = user?.role || 'VIEWER';
 
   const filteredMenu = menuItems.filter(item => item.roles.includes(userRole));
 
+  const handleNavClick = () => {
+    onClose();
+  };
+
   return (
-    <aside className="bg-black text-white w-64 flex-shrink-0">
-      <div className="p-4 border-b border-gray-800">
+    <aside className={`
+      bg-black text-white w-64 flex-shrink-0
+      fixed inset-y-0 left-0 z-50 transform transition-transform duration-200 ease-in-out
+      lg:relative lg:translate-x-0
+      ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+    `}>
+      <div className="p-4 border-b border-gray-800 flex items-center justify-between">
         <h1 className="text-xl font-bold">SOLUCIONES <span className="text-red-500">EL INCA</span></h1>
+        <button onClick={onClose} className="lg:hidden text-gray-400 hover:text-white">
+          <X size={24} />
+        </button>
       </div>
       <nav className="p-4">
         <ul className="space-y-2">
@@ -43,6 +60,7 @@ export function Sidebar() {
             <li key={item.path}>
               <NavLink
                 to={item.path}
+                onClick={handleNavClick}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
                     isActive

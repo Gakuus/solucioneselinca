@@ -114,7 +114,7 @@ export function MaintenancesPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <h1 className="text-2xl font-bold">Mantenimientos</h1>
         {canEdit && (
           <button
@@ -232,6 +232,7 @@ export function MaintenancesPage() {
         ) : maintenances.length === 0 ? (
           <div className="p-6 text-center text-gray-500">No se encontraron mantenimientos</div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
@@ -308,6 +309,7 @@ export function MaintenancesPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
 
         {/* Pagination */}
@@ -502,7 +504,7 @@ function MaintenanceFormModal({
   if (isLoadingData) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 w-96">
+        <div className="bg-white rounded-lg p-6 w-full max-w-lg mx-4">
           <div className="text-center text-gray-500">Cargando datos...</div>
         </div>
       </div>
@@ -528,7 +530,7 @@ function MaintenanceFormModal({
         )}
 
         <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Máquina *</label>
               <select
@@ -675,8 +677,8 @@ function MaintenanceFormModal({
             {items.length > 0 && (
               <div className="space-y-2">
                 {items.map((item, index) => (
-                  <div key={index} className="grid grid-cols-12 gap-2 items-end">
-                    <div className="col-span-3">
+                  <div key={index} className="grid grid-cols-2 md:grid-cols-12 gap-2 items-end">
+                    <div className="col-span-2 md:col-span-3">
                       <input
                         type="text"
                         placeholder="Nombre"
@@ -695,7 +697,7 @@ function MaintenanceFormModal({
                         min="1"
                       />
                     </div>
-                    <div className="col-span-2">
+                    <div className="col-span-2 md:col-span-2">
                       <input
                         type="number"
                         placeholder="Costo"
@@ -706,7 +708,7 @@ function MaintenanceFormModal({
                         step="0.01"
                       />
                     </div>
-                    <div className="col-span-2">
+                    <div className="col-span-2 md:col-span-2">
                       <input
                         type="text"
                         placeholder="Proveedor"
@@ -715,7 +717,7 @@ function MaintenanceFormModal({
                         className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-red-500"
                       />
                     </div>
-                    <div className="col-span-3">
+                    <div className="col-span-2 md:col-span-3">
                       <input
                         type="text"
                         placeholder="Categoría"
@@ -796,7 +798,7 @@ function StatusChangeModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-96">
+      <div className="bg-white rounded-lg p-6 w-full max-w-lg mx-4">
         <h2 className="text-lg font-semibold mb-4">Cambiar Estado</h2>
         <p className="text-sm text-gray-600 mb-4">
           Mantenimiento: {maintenance.machine?.code} - {maintenance.maintenanceType?.name}
@@ -914,7 +916,7 @@ function MaintenanceDetailModal({
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div>
             <label className="text-sm font-medium text-gray-500">Máquina</label>
             <p className="text-sm">{maintenance.machine?.code} - {maintenance.machine?.name}</p>
@@ -968,6 +970,7 @@ function MaintenanceDetailModal({
         {maintenance.items && maintenance.items.length > 0 && (
           <div className="mb-6">
             <label className="text-sm font-medium text-gray-500 mb-2 block">Ítems</label>
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
@@ -988,6 +991,7 @@ function MaintenanceDetailModal({
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
 

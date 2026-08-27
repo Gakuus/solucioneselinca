@@ -127,9 +127,9 @@ export function AlertsPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <h1 className="text-2xl font-bold">Alertas</h1>
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2">
           {stats && stats.unread > 0 && (
             <button
               onClick={handleMarkAllAsRead}
@@ -246,6 +246,7 @@ export function AlertsPage() {
         ) : alerts.length === 0 ? (
           <div className="p-6 text-center text-gray-500">No se encontraron alertas</div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
@@ -304,6 +305,7 @@ export function AlertsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
 
         {/* Pagination */}

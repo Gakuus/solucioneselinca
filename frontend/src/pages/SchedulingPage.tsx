@@ -121,7 +121,7 @@ export function SchedulingPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <h1 className="text-2xl font-bold">Programación de Mantenimientos</h1>
         {canEdit && (
           <button
@@ -206,6 +206,7 @@ export function SchedulingPage() {
         ) : schedules.length === 0 ? (
           <div className="p-6 text-center text-gray-500">No se encontraron programaciones</div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
@@ -285,8 +286,8 @@ export function SchedulingPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
-
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
@@ -440,7 +441,7 @@ function ScheduleFormModal({
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Frecuencia</label>
               <select
@@ -468,7 +469,7 @@ function ScheduleFormModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Inicio</label>
               <input

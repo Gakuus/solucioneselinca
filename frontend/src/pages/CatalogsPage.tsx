@@ -26,7 +26,7 @@ export function CatalogsPage() {
 
       <div className="bg-white rounded-lg shadow">
         <div className="border-b border-gray-200">
-          <nav className="flex space-x-8 px-6">
+          <nav className="flex space-x-8 px-6 overflow-x-auto">
             <button
               onClick={() => setActiveTab('machine-types')}
               className={`border-b-2 py-4 text-sm font-medium ${
@@ -222,7 +222,7 @@ function MachineTypeFormModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-96">
+      <div className="bg-white rounded-lg p-6 w-full max-w-lg mx-4">
         <h2 className="text-lg font-semibold mb-4">
           {type ? 'Editar Tipo' : 'Nuevo Tipo de Máquina'}
         </h2>
@@ -463,7 +463,7 @@ function MaintenanceTypeFormModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-96">
+      <div className="bg-white rounded-lg p-6 w-full max-w-lg mx-4">
         <h2 className="text-lg font-semibold mb-4">
           {type ? 'Editar Tipo' : 'Nuevo Tipo de Mantenimiento'}
         </h2>
