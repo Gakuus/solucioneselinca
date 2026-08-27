@@ -24,23 +24,24 @@ export function LoginPage() {
   return (
     <div className="min-h-screen flex">
       {/* Left Panel - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-black relative overflow-hidden items-center justify-center">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 left-10 w-72 h-72 bg-red-600 rounded-full blur-3xl" />
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-red-600 rounded-full blur-3xl" />
-        </div>
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center">
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('/elinca.jpg')" }}
+        />
+        <div className="absolute inset-0 bg-black/60" />
         <div className="relative z-10 text-center px-12">
-          <div className="w-20 h-20 bg-red-600 rounded-2xl flex items-center justify-center mx-auto mb-8">
+          <div className="w-20 h-20 bg-red-600 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-lg">
             <Wrench size={40} className="text-white" />
           </div>
           <h1 className="text-4xl font-bold text-white mb-4 tracking-tight">
             SOLUCIONES
             <span className="block text-red-500">EL INCA</span>
           </h1>
-          <p className="text-gray-400 text-lg max-w-md">
+          <p className="text-gray-200 text-lg max-w-md">
             Sistema de gestión de mantenimiento de maquinaria de construcción
           </p>
-          <div className="mt-12 flex justify-center gap-8 text-gray-500 text-sm">
+          <div className="mt-12 flex justify-center gap-8 text-gray-300 text-sm">
             <div className="text-center">
               <div className="text-2xl font-bold text-white">24/7</div>
               <div>Monitoreo</div>
