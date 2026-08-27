@@ -19,6 +19,7 @@ import catalogsRouter from './modules/catalogs/catalogs.routes';
 import maintenancesRouter from './modules/maintenances/maintenances.routes';
 import alertsRouter from './modules/alerts/alerts.routes';
 import auditRouter from './modules/audit/audit.routes';
+import reportsRouter from './modules/reports/reports.routes';
 
 async function bootstrap() {
   const config = loadConfig();
@@ -60,6 +61,9 @@ async function bootstrap() {
 
   // Audit routes
   app.use('/api/v1/audit', auditRouter);
+
+  // Reports routes
+  app.use('/api/v1/reports', reportsRouter);
 
   app.use(errorHandler);
 
