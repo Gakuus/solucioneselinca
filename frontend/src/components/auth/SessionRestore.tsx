@@ -1,45 +1,30 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 
 /**
- * Ensures the persisted session has fully hydrated AND the access token has
- * been restored from the refresh cookie before rendering the app routes.
+ * Gates the whole app behind the session check so that, on a page reload, the
+ * access token is restored from the refresh cookie BEFORE any route renders.
  *
- * Previously the app mounted pages immediately on reload while the access
- * token was still held only in memory (it is not persisted). Requests then
- * went out without a token, the backend returned 401, and the client's
- * "other 401" branch called forceLogout() — causing spurious session logouts
- * and "could not load" errors right after a page refresh.
+ * The previous implementation waited on zustand's onFinishHydration promise,
+ * which never resolves when rehydration already finished before the listener
+ * was registered (common in dev StrictMode) — leaving the app stuck on the
+ * loading screen forever.
  */
 export function SessionRestore({ children }: { children: React.ReactNode }) {
-  const [ready, setReady] = useState(false);
-  const checkSession = useAuthStore((s) => s.checkSession);
+  const sessionChecked = useAuthStore((s) => s.sessionChecked);
 
+  // StrictMode double-invokes effects; make the check idempotent and safe by
+  // simply relying on the store's sessionChecked flag being flipped by
+  // checkSession() (invoked post-rehydration in the store itself).
   useEffect(() => {
-    let cancelled = false;
+    // Safety net: if for any reason checkSession never ran/flagged, ensure the
+    // gate can still open (force logout happens when token cannot be restored).
+    if (!useAuthStore.getState().sessionChecked) {
+      useAuthStore.getState().checkSession();
+    }
+  }, []);
 
-    const init = async () => {
-      // Wait for zustand persist to finish rehydrating from localStorage.
-      if (!useAuthStore.persist.hasHydrated()) {
-        await new Promise<void>((resolve) => {
-          useAuthStore.persist.onFinishHydration(() => resolve());
-        });
-      }
-      // Restore the token (or log out if the refresh cookie is gone).
-      if (!cancelled) {
-        await checkSession();
-        if (!cancelled) setReady(true);
-      }
-    };
-
-    init();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [checkSession]);
-
-  if (!ready) {
+  if (!sessionChecked) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">

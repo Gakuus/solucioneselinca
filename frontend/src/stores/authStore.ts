@@ -220,10 +220,14 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: state.isAuthenticated,
       }),
       onRehydrateStorage: () => (state) => {
-        // Mark session as not-yet-checked so the app can restore the token
-        // (via checkSession) from the refresh cookie before rendering pages.
+        // Runs immediately after rehydration completes (guaranteed). Mark the
+        // session as not-yet-checked and hand off to checkSession(), which
+        // restores the access token from the refresh cookie before the app
+        // renders any route. We must not await here because this callback is
+        // sync-fired; SessionRestore gates rendering on the sessionChecked flag.
         if (state) {
           useAuthStore.setState({ sessionChecked: false });
+          useAuthStore.getState().checkSession();
         }
       },
     }
