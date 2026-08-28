@@ -81,7 +81,10 @@ class ApiClient {
         // Don't refresh for login/register/refresh-token endpoints
         if (endpoint.includes('/auth/login') || endpoint.includes('/auth/register') || endpoint.includes('/auth/refresh-token')) {
           // Fall through to error handling below
-        } else if (code === 'TOKEN_EXPIRED' || code === 'TOKEN_INVALID') {
+        } else if (code === 'TOKEN_EXPIRED' || code === 'TOKEN_INVALID' || !this.accessToken) {
+          // No access token in memory (e.g. right after a page reload): the
+          // session is still being restored from the refresh cookie. Try to
+          // refresh instead of force-logging-out, which caused spurious logouts.
           return this.handleTokenRefresh(endpoint, options, _retryCount);
         } else {
           // Other 401 (unauthorized, etc.) - force logout

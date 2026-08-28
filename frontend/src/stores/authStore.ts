@@ -16,11 +16,13 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  sessionChecked: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   forceLogout: () => void;
   refreshToken: () => Promise<void>;
+  checkSession: () => Promise<void>;
   clearError: () => void;
   updateProfile: (data: UpdateProfileData) => Promise<void>;
   changePassword: (data: ChangePasswordData) => Promise<void>;
@@ -72,6 +74,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isLoading: false,
       error: null,
+      sessionChecked: false,
 
       login: async (email: string, password: string) => {
         set({ isLoading: true, error: null });
@@ -85,6 +88,7 @@ export const useAuthStore = create<AuthState>()(
             token: accessToken,
             isAuthenticated: true,
             isLoading: false,
+            sessionChecked: true,
           });
 
           // Schedule proactive refresh
@@ -110,6 +114,7 @@ export const useAuthStore = create<AuthState>()(
             token: accessToken,
             isAuthenticated: true,
             isLoading: false,
+            sessionChecked: true,
           });
 
           scheduleProactiveRefresh(accessToken, get().refreshToken);
@@ -134,6 +139,7 @@ export const useAuthStore = create<AuthState>()(
             user: null,
             token: null,
             isAuthenticated: false,
+            sessionChecked: true,
           });
         }
       },
@@ -145,6 +151,7 @@ export const useAuthStore = create<AuthState>()(
           user: null,
           token: null,
           isAuthenticated: false,
+          sessionChecked: true,
         });
       },
 
@@ -154,6 +161,29 @@ export const useAuthStore = create<AuthState>()(
           if (newToken) {
             api.setAccessToken(newToken);
             set({ token: newToken });
+            scheduleProactiveRefresh(newToken, get().refreshToken);
+          } else {
+            get().forceLogout();
+          }
+        } catch {
+          get().forceLogout();
+        }
+      },
+
+      checkSession: async () => {
+        // Called on app start after rehydration. Restores the access token
+        // from the refresh cookie (if a session is persisted) BEFORE any
+        // page mounts, so requests never go out without a token.
+        if (!get().isAuthenticated || !get().user) {
+          set({ sessionChecked: true });
+          return;
+        }
+        clearProactiveRefresh();
+        try {
+          const newToken = await api.refreshAccessToken();
+          if (newToken) {
+            api.setAccessToken(newToken);
+            set({ token: newToken, sessionChecked: true });
             scheduleProactiveRefresh(newToken, get().refreshToken);
           } else {
             get().forceLogout();
@@ -190,18 +220,10 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: state.isAuthenticated,
       }),
       onRehydrateStorage: () => (state) => {
-        // On page reload, try to get a fresh access token from the refresh cookie
-        if (state?.isAuthenticated && state?.user) {
-          api.refreshAccessToken().then((newToken) => {
-            if (newToken) {
-              api.setAccessToken(newToken);
-              useAuthStore.setState({ token: newToken });
-              scheduleProactiveRefresh(newToken, useAuthStore.getState().refreshToken);
-            } else {
-              // Refresh cookie expired or invalid - force logout
-              useAuthStore.getState().forceLogout();
-            }
-          });
+        // Mark session as not-yet-checked so the app can restore the token
+        // (via checkSession) from the refresh cookie before rendering pages.
+        if (state) {
+          useAuthStore.setState({ sessionChecked: false });
         }
       },
     }

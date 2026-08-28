@@ -14,12 +14,14 @@ import { CatalogsPage } from './pages/CatalogsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { MainLayout } from './components/layout/MainLayout';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { SessionRestore } from './components/auth/SessionRestore';
 
 function App() {
   return (
     <BrowserRouter>
       <ToastProvider>
-        <Routes>
+        <SessionRestore>
+          <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route
             path="/"
@@ -78,7 +80,8 @@ function App() {
             />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
+          </Routes>
+        </SessionRestore>
       </ToastProvider>
     </BrowserRouter>
   );
