@@ -1,4 +1,4 @@
-# MantenimientoPlus
+# Solucioneselinca
 
 Plataforma web completa para la gestión de mantenimiento de maquinaria de construcción.
 
