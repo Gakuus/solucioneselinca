@@ -7,9 +7,13 @@ const SALT_ROUNDS = 12;
 
 export class UsersService {
   async findAll(query: UserQueryInput) {
-    const { page, limit, search, role, isActive, sortBy, sortOrder } = query;
+    const { page, limit, search, role, isActive, sortBy, sortOrder, includeDeleted } = query;
 
     const where: any = {};
+
+    if (!includeDeleted) {
+      where.deletedAt = null;
+    }
 
     if (search) {
       where.OR = [
@@ -85,6 +89,9 @@ export class UsersService {
     });
 
     if (existingUser) {
+      if (existingUser.deletedAt) {
+        throw new ConflictError('El email ya está registrado (usuario desactivado). Puedes reactivarlo desde el listado de inactivos.');
+      }
       throw new ConflictError('El email ya está registrado');
     }
 
@@ -165,23 +172,42 @@ export class UsersService {
     // Prevent deleting the last admin
     if (user.role === 'ADMIN') {
       const adminCount = await prisma.user.count({
-        where: { role: 'ADMIN', isActive: true },
+        where: { role: 'ADMIN', isActive: true, deletedAt: null },
       });
 
       if (adminCount <= 1) {
-        throw new ConflictError('No se puede eliminar el último administrador');
+        throw new ConflictError('No se puede desactivar el último administrador');
       }
     }
 
-    await prisma.user.delete({ where: { id } });
+    await prisma.user.update({
+      where: { id },
+      data: { deletedAt: new Date(), isActive: false },
+    });
+  }
+
+  async restore(id: string) {
+    const user = await prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      throw new NotFoundError('Usuario no encontrado');
+    }
+
+    await prisma.user.update({
+      where: { id },
+      data: { deletedAt: null },
+    });
   }
 
   async getStats() {
     const [total, active, byRole] = await Promise.all([
-      prisma.user.count(),
-      prisma.user.count({ where: { isActive: true } }),
+      prisma.user.count({ where: { deletedAt: null } }),
+      prisma.user.count({ where: { isActive: true, deletedAt: null } }),
       prisma.user.groupBy({
         by: ['role'],
+        where: { deletedAt: null },
         _count: { id: true },
       }),
     ]);

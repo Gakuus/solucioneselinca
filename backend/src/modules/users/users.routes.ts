@@ -40,4 +40,9 @@ router.delete('/:id', authorize('ADMIN'), validate({ params: idParamSchema }), (
   usersController.delete(req, res, next)
 );
 
+// PATCH /api/v1/users/:id/restore - Restore user (Admin only)
+router.patch('/:id/restore', authorize('ADMIN'), validate({ params: idParamSchema }), (req, res, next) =>
+  usersController.restore(req, res, next)
+);
+
 export default router;

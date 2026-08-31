@@ -9,8 +9,9 @@ import type {
 
 export class CatalogsService {
   // Machine Types
-  async getAllMachineTypes() {
+  async getAllMachineTypes(includeDeleted = false) {
     return prisma.machineType.findMany({
+      where: includeDeleted ? {} : { deletedAt: null },
       orderBy: { name: 'asc' },
     });
   }
@@ -38,6 +39,9 @@ export class CatalogsService {
     });
 
     if (existing) {
+      if (existing.deletedAt) {
+        throw new ConflictError(`Ya existe un tipo de máquina con el nombre: ${data.name} (desactivado). Puedes reactivarlo desde el listado de inactivos.`);
+      }
       throw new ConflictError(`Ya existe un tipo de máquina con el nombre: ${data.name}`);
     }
 
@@ -61,7 +65,7 @@ export class CatalogsService {
 
     if (data.name && data.name !== existing.name) {
       const nameExists = await prisma.machineType.findFirst({
-        where: { name: { equals: data.name, mode: 'insensitive' } },
+        where: { name: { equals: data.name, mode: 'insensitive' }, deletedAt: null },
       });
 
       if (nameExists) {
@@ -93,16 +97,31 @@ export class CatalogsService {
 
     if (machineType.machines.length > 0) {
       throw new ConflictError(
-        'No se puede eliminar el tipo porque tiene máquinas asociadas'
+        'No se puede desactivar el tipo porque tiene máquinas asociadas. Puedes desactivarlo con el estado inactivo.'
       );
     }
 
-    await prisma.machineType.delete({ where: { id } });
+    await prisma.machineType.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+  }
+
+  async restoreMachineType(id: string) {
+    const machineType = await prisma.machineType.findUnique({ where: { id } });
+    if (!machineType) {
+      throw new NotFoundError('Tipo de máquina no encontrado');
+    }
+    await prisma.machineType.update({
+      where: { id },
+      data: { deletedAt: null },
+    });
   }
 
   // Maintenance Types
-  async getAllMaintenanceTypes() {
+  async getAllMaintenanceTypes(includeDeleted = false) {
     return prisma.maintenanceType.findMany({
+      where: includeDeleted ? {} : { deletedAt: null },
       orderBy: { name: 'asc' },
     });
   }
@@ -130,6 +149,9 @@ export class CatalogsService {
     });
 
     if (existing) {
+      if (existing.deletedAt) {
+        throw new ConflictError(`Ya existe un tipo de mantenimiento con el nombre: ${data.name} (desactivado). Puedes reactivarlo desde el listado de inactivos.`);
+      }
       throw new ConflictError(`Ya existe un tipo de mantenimiento con el nombre: ${data.name}`);
     }
 
@@ -155,7 +177,7 @@ export class CatalogsService {
 
     if (data.name && data.name !== existing.name) {
       const nameExists = await prisma.maintenanceType.findFirst({
-        where: { name: { equals: data.name, mode: 'insensitive' } },
+        where: { name: { equals: data.name, mode: 'insensitive' }, deletedAt: null },
       });
 
       if (nameExists) {
@@ -189,11 +211,25 @@ export class CatalogsService {
 
     if (maintenanceType.maintenances.length > 0) {
       throw new ConflictError(
-        'No se puede eliminar el tipo porque tiene mantenimientos asociados'
+        'No se puede desactivar el tipo porque tiene mantenimientos asociados. Puedes desactivarlo con el estado inactivo.'
       );
     }
 
-    await prisma.maintenanceType.delete({ where: { id } });
+    await prisma.maintenanceType.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+  }
+
+  async restoreMaintenanceType(id: string) {
+    const maintenanceType = await prisma.maintenanceType.findUnique({ where: { id } });
+    if (!maintenanceType) {
+      throw new NotFoundError('Tipo de mantenimiento no encontrado');
+    }
+    await prisma.maintenanceType.update({
+      where: { id },
+      data: { deletedAt: null },
+    });
   }
 }
 

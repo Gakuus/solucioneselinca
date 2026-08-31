@@ -6,6 +6,7 @@ export interface User {
   email: string;
   role: 'ADMIN' | 'SUPERVISOR' | 'TECHNICIAN' | 'VIEWER';
   isActive: boolean;
+  deletedAt?: string | null;
   lastLoginAt?: string;
   createdAt: string;
   updatedAt: string;
@@ -50,6 +51,7 @@ export interface UserFilters {
   search?: string;
   role?: string;
   isActive?: boolean;
+  includeDeleted?: boolean;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
 }
@@ -85,6 +87,10 @@ export const usersApi = {
 
   delete: async (id: string): Promise<void> => {
     await api.delete(`/users/${id}`);
+  },
+
+  restore: async (id: string): Promise<void> => {
+    await api.patch(`/users/${id}/restore`);
   },
 
   getStats: async (): Promise<UserStats> => {

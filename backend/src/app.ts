@@ -22,6 +22,7 @@ import auditRouter from './modules/audit/audit.routes';
 import reportsRouter from './modules/reports/reports.routes';
 import schedulingRouter from './modules/scheduling/scheduling.routes';
 import configRouter from './modules/config/config.routes';
+import sparePartsRouter from './modules/spareparts/spareparts.routes';
 
 async function bootstrap() {
   const config = loadConfig();
@@ -76,13 +77,17 @@ async function bootstrap() {
   // Config routes
   app.use('/api/v1/config', configRouter);
 
+  // Spare parts routes
+  app.use('/api/v1/spare-parts', sparePartsRouter);
+
   app.use(errorHandler);
 
   await connectDatabase();
   getRedis();
 
   const port = parseInt(config.PORT, 10);
-  app.listen(port, () => {
+  const host = process.env.HOST || '0.0.0.0';
+  app.listen(port, host, () => {
     logger.info(`🚀 Server running on port ${port}`);
     logger.info(`📚 Environment: ${config.NODE_ENV}`);
   });

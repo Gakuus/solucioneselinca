@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { Check, Trash2, RefreshCw } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { alertsApi, Alert, AlertStats } from '../services/alerts';
 import { useToast } from '../components/ui/toast';
 import { ConfirmDialog } from '../components/ui/confirm-dialog';
+import { MobileCard, MobileRow } from '../components/ui/mobile-card';
 
 export function AlertsPage() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -13,6 +15,7 @@ export function AlertsPage() {
   const [typeFilter, setTypeFilter] = useState('');
   const [severityFilter, setSeverityFilter] = useState('');
   const [readFilter, setReadFilter] = useState('');
+  const [showInactive, setShowInactive] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string }>({ open: false, id: '' });
@@ -22,7 +25,7 @@ export function AlertsPage() {
   useEffect(() => {
     loadAlerts();
     loadStats();
-  }, [currentPage, search, typeFilter, severityFilter, readFilter]);
+  }, [currentPage, search, typeFilter, severityFilter, readFilter, showInactive]);
 
   const loadAlerts = async () => {
     try {
@@ -34,6 +37,7 @@ export function AlertsPage() {
         type: typeFilter || undefined,
         severity: severityFilter || undefined,
         isRead: readFilter === '' ? undefined : readFilter === 'true',
+        includeDeleted: showInactive,
       });
       setAlerts(response.data);
       setTotalPages(response.pagination.totalPages);
@@ -84,6 +88,17 @@ export function AlertsPage() {
       loadStats();
     } catch (err: any) {
       toast('error', err.message || 'Error al eliminar alerta');
+    }
+  };
+
+  const handleRestore = async (id: string) => {
+    try {
+      await alertsApi.restore(id);
+      toast('success', 'Alerta restaurada correctamente');
+      loadAlerts();
+      loadStats();
+    } catch (err: any) {
+      toast('error', err.message || 'Error al restaurar alerta');
     }
   };
 
@@ -243,64 +258,153 @@ export function AlertsPage() {
             Limpiar Filtros
           </button>
         </div>
+        <label className="inline-flex items-center mt-3 text-sm text-gray-700">
+          <input
+            type="checkbox"
+            checked={showInactive}
+            onChange={(e) => {
+              setShowInactive(e.target.checked);
+              setCurrentPage(1);
+            }}
+            className="mr-2"
+          />
+          Mostrar inactivos
+        </label>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-3">
+        {isLoading ? (
+          <div className="p-6 text-center text-gray-500 bg-white rounded-lg shadow">Cargando...</div>
+        ) : alerts.length === 0 ? (
+          <div className="p-6 text-center text-gray-500 bg-white rounded-lg shadow">No se encontraron alertas</div>
+        ) : (
+          alerts.map((alert) => (
+            <MobileCard key={alert.id} inactive={!!alert.deletedAt}>
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <div className="min-w-0">
+                  <div className="font-semibold text-gray-900 text-base">{alert.machine?.code || 'Sistema'}</div>
+                  {!alert.isRead && !alert.deletedAt && (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 mt-0.5">
+                      <span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> No leída
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                  {getSeverityBadge(alert.severity)}
+                  {getTypeBadge(alert.type)}
+                </div>
+              </div>
+              <div className="text-sm text-gray-700 py-1.5 break-words">{alert.message}</div>
+              <MobileRow label="Fecha">{new Date(alert.createdAt).toLocaleDateString()}</MobileRow>
+              {!alert.deletedAt && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {!alert.isRead && (
+                    <button
+                      onClick={() => handleMarkAsRead(alert.id)}
+                      className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2.5 bg-green-50 text-green-700 text-sm font-medium rounded-lg"
+                    >
+                      <Check size={15} /> Marcar leída
+                    </button>
+                  )}
+                  {isAdmin && (
+                    <button
+                      onClick={() => setDeleteConfirm({ open: true, id: alert.id })}
+                      className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg"
+                    >
+                      <Trash2 size={15} /> Eliminar
+                    </button>
+                  )}
+                </div>
+              )}
+              {alert.deletedAt && isAdmin && (
+                <div className="mt-2">
+                  <button
+                    onClick={() => handleRestore(alert.id)}
+                    className="w-full inline-flex justify-center items-center gap-1.5 px-3 py-2.5 bg-green-50 text-green-700 text-sm font-medium rounded-lg"
+                  >
+                    <RefreshCw size={15} /> Restaurar
+                  </button>
+                </div>
+              )}
+            </MobileCard>
+          ))
+        )}
+      </div>
+
+      {/* Table (md+) */}
+      <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
         {isLoading ? (
           <div className="p-6 text-center text-gray-500">Cargando...</div>
         ) : alerts.length === 0 ? (
           <div className="p-6 text-center text-gray-500">No se encontraron alertas</div>
         ) : (
           <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
+          <table className="table-shell">
+            <thead>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alerta</th>
-                <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Severidad</th>
-                <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-                <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                <th className="px-6 py-3">Alerta</th>
+                <th className="px-6 py-3">Tipo</th>
+                <th className="px-6 py-3">Severidad</th>
+                <th className="px-6 py-3">Estado</th>
+                <th className="px-6 py-3">Fecha</th>
+                <th className="px-6 py-3">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody>
               {alerts.map((alert) => (
-                <tr key={alert.id} className={`hover:bg-gray-50 ${!alert.isRead ? 'bg-red-50' : ''}`}>
+                <tr key={alert.id} className={`${alert.deletedAt ? 'opacity-50 bg-gray-100' : `hover:bg-gray-50 ${!alert.isRead ? 'bg-red-50' : ''}`}`}>
                   <td className="px-6 py-4">
                     <div className="font-medium text-sm">{alert.machine?.code}</div>
                     <div className="text-xs text-gray-500 max-w-[180px] truncate">{alert.message}</div>
+                    {alert.deletedAt && <div className="text-xs text-gray-500">Eliminada</div>}
                   </td>
-                  <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap">{getTypeBadge(alert.type)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{getTypeBadge(alert.type)}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{getSeverityBadge(alert.severity)}</td>
-                  <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <span
                       className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        alert.isRead ? 'bg-gray-100 text-gray-800' : 'bg-green-100 text-green-800'
+                        alert.deletedAt ? 'bg-gray-100 text-gray-800' : alert.isRead ? 'bg-gray-100 text-gray-800' : 'bg-green-100 text-green-800'
                       }`}
                     >
-                      {alert.isRead ? 'Leída' : 'No leída'}
+                      {alert.deletedAt ? 'Eliminada' : alert.isRead ? 'Leída' : 'No leída'}
                     </span>
                   </td>
-                  <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(alert.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {alert.deletedAt ? (
+                      isAdmin && (
+                        <button
+                          onClick={() => handleRestore(alert.id)}
+                          className="action-btn action-btn-success"
+                        >
+                          <RefreshCw size={15} />
+                          Restaurar
+                        </button>
+                      )
+                    ) : (
+                      <>
                     {!alert.isRead && (
                       <button
                         onClick={() => handleMarkAsRead(alert.id)}
-                        className="text-green-600 hover:text-green-900 mr-3"
+                        className="action-btn action-btn-success mr-3"
                       >
+                        <Check size={15} />
                         Marcar leída
                       </button>
                     )}
                     {isAdmin && (
                       <button
                         onClick={() => setDeleteConfirm({ open: true, id: alert.id })}
-                        className="text-red-600 hover:text-red-900"
+                        className="action-btn action-btn-danger"
                       >
+                        <Trash2 size={15} />
                         Eliminar
                       </button>
+                    )}
+                      </>
                     )}
                   </td>
                 </tr>

@@ -1,17 +1,32 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import { ReportQueryInput, DashboardQueryInput } from './reports.validation';
+import { maintenanceTypeLabel } from './maint-types';
+import { maintenanceTechniciansLabel } from './maint-technicians';
+import { parseLocalDate, endOfLocalDay } from '../../shared/utils/dates';
 
 const prisma = new PrismaClient();
+
+const fmtDate = (d: Date | string | null | undefined) => (d ? new Date(d).toLocaleDateString('es-ES') : '');
+
+// Convierte los rangos de fecha (YYYY-MM-DD) a objeto Prisma, llevando el
+// endDate al final del día para incluir todos los registros de esa fecha.
+function dateRange(startDate: string, endDate: string): { gte: Date; lte: Date } {
+  const start = parseLocalDate(startDate);
+  const end = endOfLocalDay(endDate);
+  return { gte: start, lte: end };
+}
+
+const toCsv = (headers: string[], rows: (string | number)[][]) =>
+  [headers.join(','), ...rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))].join('\n');
+
+const escapeCsv = (v: string | number | null | undefined) => `"${String(v ?? '').replace(/"/g, '""')}"`;
 
 export class ReportsService {
   async getMaintenanceReport(query: ReportQueryInput) {
     const { startDate, endDate, machineId, technicianId, maintenanceTypeId, category } = query;
 
     const where: Prisma.MaintenanceWhereInput = {
-      receivedDate: {
-        gte: new Date(startDate),
-        lte: new Date(endDate),
-      },
+      receivedDate: dateRange(startDate, endDate),
     };
 
     if (machineId) where.machineId = machineId;
@@ -34,7 +49,19 @@ export class ReportsService {
           technician: {
             select: { id: true, name: true },
           },
+          technicianAssignments: {
+            include: {
+              technician: { select: { id: true, name: true } },
+            },
+            orderBy: { order: 'asc' },
+          },
           items: true,
+          typeAssignments: {
+            include: {
+              maintenanceType: { select: { name: true, isPreventive: true } },
+            },
+            orderBy: { order: 'asc' },
+          },
         },
         orderBy: { receivedDate: 'desc' },
       }),
@@ -75,10 +102,7 @@ export class ReportsService {
         },
         maintenances: {
           where: {
-            receivedDate: {
-              gte: new Date(startDate),
-              lte: new Date(endDate),
-            },
+            receivedDate: dateRange(startDate, endDate),
           },
           select: {
             id: true,
@@ -127,10 +151,7 @@ export class ReportsService {
       include: {
         maintenances: {
           where: {
-            receivedDate: {
-              gte: new Date(startDate),
-              lte: new Date(endDate),
-            },
+            receivedDate: dateRange(startDate, endDate),
           },
           select: {
             id: true,
@@ -216,6 +237,65 @@ export class ReportsService {
     };
   }
 
+  async exportCSV(type: string, query: ReportQueryInput) {
+    if (type === 'maintenance') {
+      const report = await this.getMaintenanceReport(query);
+      const headers = ['Máquina', 'Código', 'Tipo', 'Técnico', 'Fecha', 'Estado', 'Costo'];
+      const rows = report.data.map((m: any) => [
+        m.machine?.name || '',
+        m.machine?.code || '',
+        maintenanceTypeLabel(m),
+        maintenanceTechniciansLabel(m),
+        fmtDate(m.receivedDate),
+        m.status,
+        (m.items || []).reduce((s: number, i: any) => s + (i.unitCost || 0) * i.quantity, 0).toFixed(2),
+      ]);
+      return toCsv(headers, rows);
+    }
+
+    if (type === 'machine') {
+      const report = await this.getMachineReport(query);
+      const headers = ['Código', 'Nombre', 'Tipo', 'Estado', 'Total Mant.', 'Preventivos', 'Correctivos', 'Costo'];
+      const rows = report.map((m) => [
+        m.code,
+        m.name,
+        m.type || '',
+        m.status,
+        m.totalMaintenances,
+        m.preventiveCount,
+        m.correctiveCount,
+        m.totalCost.toFixed(2),
+      ]);
+      return toCsv(headers, rows);
+    }
+
+    if (type === 'technician') {
+      const report = await this.getTechnicianReport(query);
+      const headers = ['Nombre', 'Email', 'Total Mant.', 'Completados', 'Tasa Éxito', 'Prom. Días'];
+      const rows = report.map((t) => [
+        t.name,
+        t.email,
+        t.totalMaintenances,
+        t.completedMaintenances,
+        `${t.completionRate.toFixed(1)}%`,
+        t.avgCompletionDays,
+      ]);
+      return toCsv(headers, rows);
+    }
+
+    if (type === 'cost') {
+      const report = await this.getCostReport(query);
+      const headers = ['Proveedor', 'Costo'];
+      const rows = Object.entries(report.bySupplier)
+        .sort(([, a], [, b]) => b - a)
+        .map(([supplier, cost]) => [supplier, cost.toFixed(2)]);
+      rows.push(['TOTAL', report.totalCost.toFixed(2)]);
+      return toCsv(headers, rows);
+    }
+
+    throw new Error('Tipo de reporte no soportado');
+  }
+
   async getDashboardStats(query: DashboardQueryInput) {
     const { period } = query;
     const now = new Date();
@@ -268,6 +348,18 @@ export class ReportsService {
         machine: { select: { code: true, name: true } },
         maintenanceType: { select: { name: true } },
         technician: { select: { name: true } },
+        typeAssignments: {
+          include: {
+            maintenanceType: { select: { id: true, name: true, isPreventive: true } },
+          },
+          orderBy: { order: 'asc' },
+        },
+        technicianAssignments: {
+          include: {
+            technician: { select: { id: true, name: true } },
+          },
+          orderBy: { order: 'asc' },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });

@@ -314,4 +314,31 @@ Cada sprint debe cumplir:
 
 ---
 
+## Ideas Futuras (Post-MVP)
+
+Ideas registradas para evaluación futura, no incluidas en el roadmap actual.
+
+### PWA Instalable (manifest + service worker)
+
+**Descripción:** Convertir la aplicación en una PWA (Progressive Web App) instalable.
+
+**Beneficios:**
+- Permite instalar la app en el celular como una app nativa (icono propio en la pantalla de inicio).
+- Funcionamiento parcial sin conexión (vista de datos previamente cargados).
+- Actualizaciones automáticas sin pasar por la tienda de apps.
+- Se percibe como más profesional y accesible rápidamente para los técnicos en campo.
+
+**Cambios requeridos:**
+- `manifest.json` / `manifest.webmanifest` (nombre, iconos, theme-color).
+- Service worker (registro + precache de assets).
+- Meta tags complementarios: `theme-color`, `apple-mobile-web-app-capable`, etc.
+- Política de caché para datos de máquinas/mantenimientos.
+- Generación de iconos en distintos tamaños (192px, 512px, etc.).
+
+**Prioridad sugerida:** Media - tras estabilizar el MVP y la experiencia móvil de tarjetas.
+
+**Estado:** Idea registrada - 28/08/2026.
+
+---
+
 *Roadmap v1.0 - 26/08/2026*

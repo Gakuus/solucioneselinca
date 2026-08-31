@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
+import { Eye, X } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { auditApi, AuditLog, AuditStats } from '../services/audit';
+import { AUDIT_ACTION, label } from '../utils/labels';
+import { MobileCard, MobileRow } from '../components/ui/mobile-card';
 
 export function AuditPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -185,26 +188,62 @@ export function AuditPage() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-3">
+        {isLoading ? (
+          <div className="p-6 text-center text-gray-500 bg-white rounded-lg shadow">Cargando...</div>
+        ) : logs.length === 0 ? (
+          <div className="p-6 text-center text-gray-500 bg-white rounded-lg shadow">No se encontraron registros de auditoría</div>
+        ) : (
+          logs.map((log) => (
+            <MobileCard key={log.id}>
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <div className="min-w-0">
+                  <div className="font-semibold text-gray-900 text-base">{log.user?.name || 'Sistema'}</div>
+                </div>
+                <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                  {getActionBadge(log.action)}
+                </div>
+              </div>
+              <MobileRow label="Fecha">{new Date(log.createdAt).toLocaleString()}</MobileRow>
+              <MobileRow label="Entidad">{log.entityType}</MobileRow>
+              <MobileRow label="ID">{log.entityId ? log.entityId.substring(0, 10) + '...' : '-'}</MobileRow>
+              <div className="mt-2">
+                <button
+                  onClick={() => {
+                    setSelectedLog(log);
+                    setIsDetailOpen(true);
+                  }}
+                  className="w-full inline-flex justify-center items-center gap-1.5 px-3 py-2.5 bg-red-50 text-red-700 text-sm font-medium rounded-lg"
+                >
+                  <Eye size={15} /> Ver Detalles
+                </button>
+              </div>
+            </MobileCard>
+          ))
+        )}
+      </div>
+
+      {/* Table (md+) */}
+      <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
         {isLoading ? (
           <div className="p-6 text-center text-gray-500">Cargando...</div>
         ) : logs.length === 0 ? (
           <div className="p-6 text-center text-gray-500">No se encontraron registros de auditoría</div>
         ) : (
           <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
+          <table className="table-shell">
+            <thead>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Usuario</th>
-                <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acción</th>
-                <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entidad</th>
-                <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                <th className="px-6 py-3">Fecha</th>
+                <th className="px-6 py-3">Usuario</th>
+                <th className="px-6 py-3">Acción</th>
+                <th className="px-6 py-3">Entidad</th>
+                <th className="px-6 py-3">ID</th>
+                <th className="px-6 py-3">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody>
               {logs.map((log) => (
                 <tr key={log.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -212,11 +251,11 @@ export function AuditPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium">{log.user?.name || 'Sistema'}</div>
-                    <div className="hidden sm:table-cell text-sm text-gray-500">{log.user?.email}</div>
+                    <div className="text-sm text-gray-500">{log.user?.email}</div>
                   </td>
-                  <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap">{getActionBadge(log.action)}</td>
-                  <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm">{log.entityType}</td>
-                  <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap">{getActionBadge(log.action)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">{log.entityType}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {log.entityId ? log.entityId.substring(0, 8) + '...' : '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -225,8 +264,9 @@ export function AuditPage() {
                         setSelectedLog(log);
                         setIsDetailOpen(true);
                       }}
-                      className="text-red-600 hover:text-red-900"
+                      className="action-btn action-btn-danger"
                     >
+                      <Eye size={15} />
                       Ver Detalles
                     </button>
                   </td>
@@ -242,11 +282,11 @@ export function AuditPage() {
           <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
             <div className="flex-1 flex justify-between sm:hidden">
               <button onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1}
-                className="relative inline-flex items-center px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
+                className="relative inline-flex items-center px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 min-h-[44px]">
                 Anterior
               </button>
               <button onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages}
-                className="ml-3 relative inline-flex items-center px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
+                className="ml-3 relative inline-flex items-center px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 min-h-[44px]">
                 Siguiente
               </button>
             </div>
@@ -300,12 +340,12 @@ function AuditDetailModal({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50">
+      <div className="bg-white rounded-t-2xl sm:rounded-lg p-5 sm:p-6 w-full sm:max-w-2xl sm:mx-4 max-h-[92vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">Detalle de Auditoría</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            ✕
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-2 -mr-2 min-w-[44px] min-h-[44px]" aria-label="Cerrar">
+            <X size={20} />
           </button>
         </div>
 
@@ -320,7 +360,7 @@ function AuditDetailModal({
           </div>
           <div>
             <label className="text-sm font-medium text-gray-500">Acción</label>
-            <p className="text-sm">{log.action}</p>
+            <p className="text-sm">{label(AUDIT_ACTION, log.action)}</p>
           </div>
           <div>
             <label className="text-sm font-medium text-gray-500">Entidad</label>
@@ -357,7 +397,7 @@ function AuditDetailModal({
         <div className="flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+            className="px-4 py-2.5 border border-gray-300 rounded-md hover:bg-gray-50 min-h-[44px]"
           >
             Cerrar
           </button>

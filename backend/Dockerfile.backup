@@ -1,0 +1,14 @@
+FROM postgres:15-alpine
+
+# Este contenedor se encarga de respaldar la base de datos periódicamente.
+# La imagen postgres ya incluye pg_dump, que es lo único que necesitamos.
+
+COPY scripts/backup-cron.sh /usr/local/bin/backup-cron.sh
+RUN chmod +x /usr/local/bin/backup-cron.sh
+
+# Backups por defecto en /backups (se monta como volumen desde el host)
+ENV BACKUP_DIR=/backups \
+    KEEP_BACKUPS=14 \
+    BACKUP_INTERVAL_HOURS=24
+
+ENTRYPOINT ["/usr/local/bin/backup-cron.sh"]

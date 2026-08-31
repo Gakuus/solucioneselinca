@@ -1,6 +1,7 @@
 import { prisma } from '../../config/database';
 import { NotFoundError, ConflictError, BadRequestError } from '../../shared/errors/AppError';
 import type { CreateMachineInput, UpdateMachineInput, MachineQueryInput } from './machines.validation';
+import ExcelJS from 'exceljs';
 
 // State transition rules
 const VALID_TRANSITIONS: Record<string, string[]> = {
@@ -12,9 +13,13 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
 
 export class MachinesService {
   async findAll(query: MachineQueryInput) {
-    const { page, limit, search, status, machineTypeId, sortBy, sortOrder } = query;
+    const { page, limit, search, status, machineTypeId, sortBy, sortOrder, includeDeleted } = query;
 
     const where: any = {};
+
+    if (!includeDeleted) {
+      where.deletedAt = null;
+    }
 
     if (search) {
       where.OR = [
@@ -70,10 +75,18 @@ export class MachinesService {
           orderBy: { receivedDate: 'desc' },
           include: {
             maintenanceType: true,
-            technician: {
-              select: { id: true, name: true, email: true },
-            },
+technician: {
+            select: { id: true, name: true, email: true },
           },
+          typeAssignments: {
+            include: { maintenanceType: { select: { name: true, isPreventive: true } } },
+            orderBy: { order: 'asc' },
+          },
+          technicianAssignments: {
+            include: { technician: { select: { id: true, name: true } } },
+            orderBy: { order: 'asc' },
+          },
+        },
         },
       },
     });
@@ -92,6 +105,11 @@ export class MachinesService {
     });
 
     if (existingMachine) {
+      if (existingMachine.deletedAt) {
+        throw new ConflictError(
+          `Ya existe una máquina con el código: ${data.code} (desactivada). Puedes reactivarla desde el listado de inactivas.`
+        );
+      }
       throw new ConflictError(`Ya existe una máquina con el código: ${data.code}`);
     }
 
@@ -212,31 +230,89 @@ export class MachinesService {
   async getHistory(id: string) {
     const machine = await prisma.machine.findUnique({
       where: { id },
+      include: {
+        machineType: true,
+      },
     });
 
     if (!machine) {
       throw new NotFoundError('Máquina no encontrada');
     }
 
-    const maintenances = await prisma.maintenance.findMany({
-      where: { machineId: id },
-      orderBy: { receivedDate: 'desc' },
-      include: {
-        maintenanceType: true,
-        technician: {
-          select: { id: true, name: true },
+    const [maintenances, alerts, schedules] = await Promise.all([
+      prisma.maintenance.findMany({
+        where: { machineId: id },
+        orderBy: { receivedDate: 'desc' },
+        include: {
+          maintenanceType: true,
+          technician: {
+            select: { id: true, name: true },
+          },
+          items: true,
+          typeAssignments: {
+            include: { maintenanceType: { select: { name: true, isPreventive: true } } },
+            orderBy: { order: 'asc' },
+          },
+          technicianAssignments: {
+            include: { technician: { select: { id: true, name: true } } },
+            orderBy: { order: 'asc' },
+          },
         },
-        items: true,
-      },
-    });
+      }),
+      prisma.alert.findMany({
+        where: { machineId: id, deletedAt: null },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      }),
+      prisma.maintenanceSchedule.findMany({
+        where: { machineId: id, isActive: true, deletedAt: null },
+        orderBy: { nextExecution: 'asc' },
+        include: {
+          maintenanceType: { select: { name: true, isPreventive: true } },
+        },
+        take: 10,
+      }),
+    ]);
+
+    // Totales y estadísticas de historial
+    const totalCost = maintenances.reduce(
+      (sum, m) => sum + m.items.reduce((itemSum, item) => itemSum + (item.unitCost || 0) * item.quantity, 0),
+      0
+    );
+    const preventiveCount = maintenances.filter((m) => m.maintenanceType?.isPreventive).length;
+    const correctiveCount = maintenances.length - preventiveCount;
+    const avgCostPerMaintenance = maintenances.length ? totalCost / maintenances.length : 0;
 
     return {
       machine: {
         id: machine.id,
         code: machine.code,
         name: machine.name,
+        machineTypeId: machine.machineTypeId,
+        machineType: machine.machineType?.name,
+        brand: machine.brand,
+        model: machine.model,
+        serialNumber: machine.serialNumber,
+        year: machine.year,
+        dailyHoursAverage: machine.dailyHoursAverage,
+        status: machine.status,
+        deletedAt: machine.deletedAt,
+        createdAt: machine.createdAt,
+      },
+      stats: {
+        totalMaintenances: maintenances.length,
+        preventiveCount,
+        correctiveCount,
+        totalCost,
+        avgCostPerMaintenance,
+        completedCount: maintenances.filter((m) => m.status === 'COMPLETED').length,
+        inProgressCount: maintenances.filter((m) => m.status === 'IN_PROGRESS').length,
+        scheduledCount: maintenances.filter((m) => m.status === 'SCHEDULED').length,
+        cancelledCount: maintenances.filter((m) => m.status === 'CANCELLED').length,
       },
       maintenances,
+      alerts,
+      schedules,
     };
   }
 
@@ -245,14 +321,29 @@ export class MachinesService {
     if (!existing) {
       throw new NotFoundError('Máquina no encontrada');
     }
-    await prisma.machine.delete({ where: { id } });
-    return { message: 'Máquina eliminada exitosamente' };
+    await prisma.machine.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+    return { message: 'Máquina desactivada correctamente' };
   }
 
-  async exportCSV(query: Omit<MachineQueryInput, 'page' | 'limit'>) {
+  async restore(id: string) {
+    const existing = await prisma.machine.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundError('Máquina no encontrada');
+    }
+    await prisma.machine.update({
+      where: { id },
+      data: { deletedAt: null },
+    });
+    return { message: 'Máquina reactivada correctamente' };
+  }
+
+  async exportExcel(query: Omit<MachineQueryInput, 'page' | 'limit'>) {
     const { search, status, machineTypeId, sortBy, sortOrder } = query;
 
-    const where: any = {};
+    const where: any = { deletedAt: null };
 
     if (search) {
       where.OR = [
@@ -281,21 +372,66 @@ export class MachinesService {
       orderBy: { [sortBy]: sortOrder },
     });
 
-    // Build CSV
-    const headers = ['Código', 'Nombre', 'Tipo', 'Marca', 'Modelo', 'Año', 'Estado'];
-    const rows = machines.map((m) => [
-      m.code,
-      m.name,
-      m.machineType?.name || '',
-      m.brand || '',
-      m.model || '',
-      m.year?.toString() || '',
-      m.status,
-    ]);
+    const statusLabels: Record<string, string> = {
+      ACTIVE: 'Activa',
+      INACTIVE: 'Inactiva',
+      IN_MAINTENANCE: 'Mantenimiento',
+      DECOMMISSIONED: 'Retirada',
+    };
 
-    const csv = [headers.join(','), ...rows.map((r) => r.map((c) => `"${c}"`).join(','))].join('\n');
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Máquinas');
+    ws.columns = [
+      { width: 14 },
+      { width: 28 },
+      { width: 18 },
+      { width: 18 },
+      { width: 18 },
+      { width: 8 },
+      { width: 16 },
+    ];
 
-    return csv;
+    ws.mergeCells(1, 1, 1, 7);
+    const brand = ws.getCell(1, 1);
+    brand.value = 'SOLUCIONES EL INCA';
+    brand.font = { bold: true, size: 18, color: { argb: 'DC2626' } };
+
+    ws.mergeCells(2, 1, 2, 7);
+    const title = ws.getCell(2, 1);
+    title.value = 'Listado de Máquinas';
+    title.font = { bold: true, size: 14, color: { argb: '111827' } };
+
+    ws.mergeCells(3, 1, 3, 7);
+    const generated = ws.getCell(3, 1);
+    generated.value = `Generado: ${new Date().toLocaleDateString('es-ES')}`;
+    generated.font = { size: 9, color: { argb: '9CA3AF' } };
+
+    ws.addRow([]);
+
+    const headerRow = ws.addRow(['Código', 'Nombre', 'Tipo', 'Marca', 'Modelo', 'Año', 'Estado']);
+    headerRow.eachCell((cell) => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FEF2F2' } };
+      cell.font = { bold: true, color: { argb: '7F1D1D' }, size: 10 };
+    });
+
+    machines.forEach((m) => {
+      const row = ws.addRow([
+        m.code,
+        m.name,
+        m.machineType?.name || '',
+        m.brand || '',
+        m.model || '',
+        m.year?.toString() || '',
+        statusLabels[m.status] || m.status,
+      ]);
+      row.eachCell((cell) => {
+        cell.font = { size: 10 };
+        cell.border = { bottom: { style: 'thin', color: { argb: 'F3F4F6' } } };
+      });
+    });
+
+    const buffer = Buffer.from((await wb.xlsx.writeBuffer()) as ArrayBuffer);
+    return { buffer, filename: 'maquinas.xlsx' };
   }
 
   async getMachineTypes() {

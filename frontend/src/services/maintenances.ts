@@ -17,6 +17,7 @@ export interface Maintenance {
   completedAt?: string;
   cancelledAt?: string;
   cancelReason?: string;
+  deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;
   machine?: {
@@ -31,11 +32,30 @@ export interface Maintenance {
     name: string;
     isPreventive: boolean;
   };
+  typeAssignments?: {
+    id: string;
+    order: number;
+    maintenanceType: {
+      id: string;
+      name: string;
+      isPreventive?: boolean;
+    };
+  }[];
   technician?: {
     id: string;
     name: string;
     email: string;
   };
+  technicianAssignments?: {
+    id: string;
+    order: number;
+    technician: {
+      id: string;
+      name: string;
+      email?: string;
+      role?: string;
+    };
+  }[];
   items?: MaintenanceItem[];
 }
 
@@ -51,8 +71,10 @@ export interface MaintenanceItem {
 
 export interface CreateMaintenanceData {
   machineId: string;
-  maintenanceTypeId: string;
-  technicianId: string;
+  maintenanceTypeId?: string;
+  maintenanceTypeIds?: string[];
+  technicianId?: string;
+  technicianIds?: string[];
   receivedDate: string;
   currentHours: number;
   description: string;
@@ -71,7 +93,9 @@ export interface CreateMaintenanceData {
 
 export interface UpdateMaintenanceData {
   maintenanceTypeId?: string;
+  maintenanceTypeIds?: string[];
   technicianId?: string;
+  technicianIds?: string[];
   maintenanceDate?: string;
   currentHours?: number;
   description?: string;
@@ -79,6 +103,13 @@ export interface UpdateMaintenanceData {
   hoursUntilNext?: number;
   nextMaintenanceDate?: string;
   estimatedNextDate?: string;
+  items?: {
+    name: string;
+    quantity?: number;
+    unitCost?: number;
+    supplier?: string;
+    category?: string;
+  }[];
 }
 
 export interface MaintenanceQueryParams {
@@ -90,6 +121,7 @@ export interface MaintenanceQueryParams {
   technicianId?: string;
   maintenanceTypeId?: string;
   category?: string;
+  includeDeleted?: boolean;
   startDate?: string;
   endDate?: string;
   sortBy?: string;
@@ -157,6 +189,10 @@ export const maintenancesApi = {
     await api.delete(`/maintenances/${id}`);
   },
 
+  restore: async (id: string): Promise<void> => {
+    await api.patch(`/maintenances/${id}/restore`);
+  },
+
   getStats: async (): Promise<MaintenanceStats> => {
     const response = await api.get<MaintenanceStats>('/maintenances/stats');
     return response.data as MaintenanceStats;
@@ -193,5 +229,71 @@ export const maintenancesApi = {
 
   deleteItem: async (maintenanceId: string, itemId: string): Promise<void> => {
     await api.delete(`/maintenances/${maintenanceId}/items/${itemId}`);
+  },
+
+  exportPDF: async (params?: MaintenanceQueryParams): Promise<Blob> => {
+    const qs = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') {
+          qs.append(key, String(value));
+        }
+      });
+    }
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1'}/maintenances/export-pdf?${qs.toString()}`,
+      {
+        credentials: 'include',
+        headers: {
+          Authorization: `Bearer ${api.getAccessToken() || ''}`,
+        },
+      }
+    );
+    return response.blob();
+  },
+
+  exportExcel: async (params?: MaintenanceQueryParams): Promise<Blob> => {
+    const qs = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') {
+          qs.append(key, String(value));
+        }
+      });
+    }
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1'}/maintenances/export-xlsx?${qs.toString()}`,
+      {
+        credentials: 'include',
+        headers: {
+          Authorization: `Bearer ${api.getAccessToken() || ''}`,
+        },
+      }
+    );
+    return response.blob();
+  },
+
+  importExcel: async (file: File): Promise<{
+    imported: number;
+    errors: string[];
+  }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1'}/maintenances/import`,
+      {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          Authorization: `Bearer ${api.getAccessToken() || ''}`,
+        },
+        body: formData,
+      }
+    );
+    const data = await response.json();
+    if (!response.ok) {
+      throw { status: response.status, message: data?.message || 'Error al importar' };
+    }
+    return data.data;
   },
 };

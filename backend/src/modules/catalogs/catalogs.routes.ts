@@ -31,6 +31,10 @@ router.delete('/machine-types/:id', authorize('ADMIN'), validate({ params: idPar
   catalogsController.deleteMachineType(req, res, next)
 );
 
+router.patch('/machine-types/:id/restore', authorize('ADMIN'), validate({ params: idParamSchema }), (req, res, next) =>
+  catalogsController.restoreMachineType(req, res, next)
+);
+
 // Maintenance Types
 router.get('/maintenance-types', (req, res, next) =>
   catalogsController.getAllMaintenanceTypes(req, res, next)
@@ -50,6 +54,10 @@ router.put('/maintenance-types/:id', authorize('ADMIN'), validate({ params: idPa
 
 router.delete('/maintenance-types/:id', authorize('ADMIN'), validate({ params: idParamSchema }), (req, res, next) =>
   catalogsController.deleteMaintenanceType(req, res, next)
+);
+
+router.patch('/maintenance-types/:id/restore', authorize('ADMIN'), validate({ params: idParamSchema }), (req, res, next) =>
+  catalogsController.restoreMaintenanceType(req, res, next)
 );
 
 export default router;

@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { maintenancesService } from './maintenances.service';
 import { auditService } from '../audit/audit.service';
+import { buildMaintenancesListPdf, buildMaintenancesListExcel } from './maintenances-export';
+import { importMaintenancesFromExcel } from './maintenances-import';
 import {
   CreateMaintenanceInput,
   UpdateMaintenanceInput,
@@ -41,7 +43,7 @@ export class MaintenancesController {
         action: 'CREATE',
         entityType: 'Maintenance',
         entityId: maintenance.id,
-        newValues: { machineId: data.machineId, maintenanceTypeId: data.maintenanceTypeId },
+        newValues: { machineId: data.machineId, maintenanceTypeId: data.maintenanceTypeId, maintenanceTypeIds: data.maintenanceTypeIds, technicianId: data.technicianId, technicianIds: data.technicianIds },
         ipAddress: req.ip,
         userAgent: req.headers['user-agent'],
       });
@@ -116,6 +118,26 @@ export class MaintenancesController {
     }
   }
 
+  async restore(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const result = await maintenancesService.restore(id);
+
+      await auditService.log({
+        userId: req.user?.userId,
+        action: 'UPDATE',
+        entityType: 'Maintenance',
+        entityId: id,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+
+      res.json({ status: 'success', data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async addItem(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
@@ -164,6 +186,56 @@ export class MaintenancesController {
         Number(year),
         Number(month)
       );
+      res.json({ status: 'success', data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async exportListPdf(req: Request, res: Response, next: NextFunction) {
+    try {
+      const query = req.query as unknown as MaintenanceQueryInput;
+      const pdf = await buildMaintenancesListPdf(query);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename=mantenimientos.pdf');
+      res.send(Buffer.from(pdf));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async exportListXlsx(req: Request, res: Response, next: NextFunction) {
+    try {
+      const query = req.query as unknown as MaintenanceQueryInput;
+      const { buffer, filename } = await buildMaintenancesListExcel(query);
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+      res.send(buffer);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async importExcel(req: Request, res: Response, next: NextFunction) {
+    try {
+      const file = (req as any).file as Express.Multer.File | undefined;
+      if (!file) {
+        return res.status(400).json({ status: 'error', message: 'No se subió ningún archivo' });
+      }
+
+      const result = await importMaintenancesFromExcel(file.buffer, req.user?.userId);
+
+      await auditService.log({
+        userId: req.user?.userId,
+        action: 'CREATE',
+        entityType: 'Maintenance',
+        newValues: { import: result, file: file.originalname },
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+
       res.json({ status: 'success', data: result });
     } catch (error) {
       next(error);

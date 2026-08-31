@@ -30,6 +30,7 @@ export const scheduleQuerySchema = z.object({
   maintenanceTypeId: z.string().uuid().optional(),
   frequency: z.enum(['DAILY', 'WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY']).optional(),
   isActive: z.coerce.boolean().optional(),
+  includeDeleted: z.coerce.boolean().optional(),
   sortBy: z.enum(['nextExecution', 'createdAt', 'frequency']).default('nextExecution'),
   sortOrder: z.enum(['asc', 'desc']).default('asc'),
 });

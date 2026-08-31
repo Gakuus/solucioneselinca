@@ -17,5 +17,11 @@ export const dashboardQuerySchema = z.object({
   period: z.enum(['week', 'month', 'quarter', 'year']).default('month'),
 });
 
+export const reportExportParamSchema = z.object({
+  type: z.enum(['maintenance', 'machine', 'technician', 'cost'], {
+    message: 'Tipo de reporte no soportado',
+  }),
+});
+
 export type ReportQueryInput = z.infer<typeof reportQuerySchema>;
 export type DashboardQueryInput = z.infer<typeof dashboardQuerySchema>;

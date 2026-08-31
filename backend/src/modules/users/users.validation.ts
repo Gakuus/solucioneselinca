@@ -21,6 +21,7 @@ export const userQuerySchema = z.object({
   search: z.string().optional(),
   role: z.enum(['ADMIN', 'SUPERVISOR', 'TECHNICIAN', 'VIEWER']).optional(),
   isActive: z.coerce.boolean().optional(),
+  includeDeleted: z.coerce.boolean().optional(),
   sortBy: z.enum(['name', 'email', 'role', 'createdAt']).default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });

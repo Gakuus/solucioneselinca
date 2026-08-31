@@ -14,6 +14,7 @@ export interface Machine {
   warrantyExpiration?: string;
   location?: string;
   notes?: string;
+  deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;
   machineType: {
@@ -37,26 +38,82 @@ export interface MachineHistory {
     id: string;
     code: string;
     name: string;
+    machineTypeId: string;
+    machineType: string;
+    brand: string;
+    model: string;
+    serialNumber?: string;
+    year?: number;
+    dailyHoursAverage: number;
+    status: string;
+    deletedAt?: string | null;
+    createdAt: string;
+  };
+  stats: {
+    totalMaintenances: number;
+    preventiveCount: number;
+    correctiveCount: number;
+    totalCost: number;
+    avgCostPerMaintenance: number;
+    completedCount: number;
+    inProgressCount: number;
+    scheduledCount: number;
+    cancelledCount: number;
   };
   maintenances: Array<{
     id: string;
     status: string;
-    scheduledDate: string;
-    completedDate?: string;
+    receivedDate: string;
+    maintenanceDate?: string;
     maintenanceType: {
       id: string;
       name: string;
+      isPreventive: boolean;
     };
+    typeAssignments?: Array<{
+      id: string;
+      order: number;
+      maintenanceType: {
+        id: string;
+        name: string;
+        isPreventive?: boolean;
+      };
+    }>;
+    technicianAssignments?: Array<{
+      id: string;
+      order: number;
+      technician: {
+        id: string;
+        name: string;
+      };
+    }>;
     technician?: {
       id: string;
       name: string;
     };
+    description: string;
     items: Array<{
       id: string;
       name: string;
       quantity: number;
       unitCost: number;
     }>;
+  }>;
+  alerts: Array<{
+    id: string;
+    type: string;
+    message: string;
+    severity: string;
+    isRead: boolean;
+    createdAt: string;
+  }>;
+  schedules: Array<{
+    id: string;
+    nextExecution: string;
+    maintenanceType: {
+      name: string;
+      isPreventive: boolean;
+    };
   }>;
 }
 
@@ -92,6 +149,7 @@ export interface MachineFilters {
   search?: string;
   status?: string;
   machineTypeId?: string;
+  includeDeleted?: boolean;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
 }
@@ -134,12 +192,42 @@ export const machinesApi = {
     await api.delete(`/machines/${id}`);
   },
 
+  restore: async (id: string): Promise<void> => {
+    await api.patch(`/machines/${id}/restore`);
+  },
+
   getHistory: async (id: string): Promise<MachineHistory> => {
     const response = await api.get<MachineHistory>(`/machines/${id}/history`);
     return response.data as MachineHistory;
   },
 
-  exportCSV: async (filters?: MachineFilters): Promise<Blob> => {
+  exportHistoryPDF: async (id: string): Promise<Blob> => {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1'}/machines/${id}/history-pdf`,
+      {
+        credentials: 'include',
+        headers: {
+          Authorization: `Bearer ${api.getAccessToken() || ''}`,
+        },
+      }
+    );
+    return response.blob();
+  },
+
+  exportHistoryExcel: async (id: string): Promise<Blob> => {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1'}/machines/${id}/history-xlsx`,
+      {
+        credentials: 'include',
+        headers: {
+          Authorization: `Bearer ${api.getAccessToken() || ''}`,
+        },
+      }
+    );
+    return response.blob();
+  },
+
+   exportExcel: async (filters?: MachineFilters): Promise<Blob> => {
     const params = new URLSearchParams();
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
@@ -158,6 +246,52 @@ export const machinesApi = {
       }
     );
     return response.blob();
+  },
+
+  exportPDF: async (filters?: MachineFilters): Promise<Blob> => {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') {
+          params.append(key, String(value));
+        }
+      });
+    }
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1'}/machines/export-pdf?${params.toString()}`,
+      {
+        credentials: 'include',
+        headers: {
+          Authorization: `Bearer ${api.getAccessToken() || ''}`,
+        },
+      }
+    );
+    return response.blob();
+  },
+
+  importExcel: async (file: File): Promise<{
+    imported: number;
+    updated: number;
+    errors: string[];
+  }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1'}/machines/import`,
+      {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          Authorization: `Bearer ${api.getAccessToken() || ''}`,
+        },
+        body: formData,
+      }
+    );
+    const data = await response.json();
+    if (!response.ok) {
+      throw { status: response.status, message: data?.message || 'Error al importar' };
+    }
+    return data.data;
   },
 
   getTypes: async (): Promise<MachineType[]> => {

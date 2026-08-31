@@ -1,13 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, LogOut, User, Menu, Check, CheckCheck, AlertTriangle, AlertCircle, Info, X, ChevronDown, Settings } from 'lucide-react';
+import { Bell, LogOut, User, Check, CheckCheck, AlertTriangle, AlertCircle, Info, X, ChevronDown, Settings } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui/button';
 import { alertsApi, Alert } from '@/services/alerts';
-
-interface HeaderProps {
-  onMenuToggle: () => void;
-}
 
 const severityConfig: Record<string, { icon: typeof Bell; color: string }> = {
   CRITICAL: { icon: AlertCircle, color: 'text-red-600' },
@@ -23,7 +19,7 @@ const roleLabels: Record<string, string> = {
   VIEWER: 'Visualizador',
 };
 
-export function Header({ onMenuToggle }: HeaderProps) {
+export function Header() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
@@ -118,29 +114,22 @@ export function Header({ onMenuToggle }: HeaderProps) {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-4 md:px-6 py-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={onMenuToggle}
-            className="lg:hidden text-gray-600 hover:text-gray-900"
-          >
-            <Menu size={24} />
-          </button>
-        </div>
-        <div className="flex items-center gap-2 md:gap-4">
+    <header className="bg-white border-b border-gray-200 px-3 md:px-6 py-3 md:py-4">
+      <div className="flex items-center justify-end">
+        <div className="flex items-center gap-1 md:gap-4">
           {/* Notification Bell */}
           <div className="relative" ref={dropdownRef}>
             <Button
               ref={bellRef}
               variant="ghost"
               size="icon"
-              className="relative"
+              aria-label="Notificaciones"
+              className="relative min-w-[44px] min-h-[44px]"
               onClick={() => setIsOpen(!isOpen)}
             >
               <Bell size={20} />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center px-1 font-medium">
+                <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 font-medium leading-none border-2 border-white">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
@@ -148,7 +137,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
 
             {/* Notifications Dropdown */}
             {isOpen && (
-              <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[70vh] flex flex-col">
+              <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-sm sm:w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[70vh] flex flex-col">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                   <h3 className="font-semibold text-sm">Notificaciones</h3>
                   <div className="flex items-center gap-2">
@@ -203,7 +192,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
                               e.stopPropagation();
                               handleMarkAsRead(alert.id);
                             }}
-                            className="text-gray-400 hover:text-green-600 flex-shrink-0 mt-0.5"
+                            className="text-gray-400 hover:text-green-600 flex-shrink-0 mt-0.5 min-w-[44px] min-h-[44px] flex items-center justify-center"
                             title="Marcar como leída"
                           >
                             <Check size={14} />
@@ -220,7 +209,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
                       setIsOpen(false);
                       navigate('/alerts');
                     }}
-                    className="w-full text-center text-sm text-red-600 hover:text-red-800 font-medium py-1"
+                    className="w-full text-center text-sm text-red-600 hover:text-red-800 font-medium py-2"
                   >
                     Ver todas las notificaciones
                   </button>
@@ -233,9 +222,10 @@ export function Header({ onMenuToggle }: HeaderProps) {
           <div className="relative" ref={profileRef}>
             <button
               onClick={() => setProfileOpen(!profileOpen)}
-              className="flex items-center gap-2 hover:bg-gray-100 rounded-lg px-2 py-1.5 transition-colors"
+              aria-label="Perfil"
+              className="flex items-center gap-2 hover:bg-gray-100 rounded-lg px-2 min-h-[44px] transition-colors"
             >
-              <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+              <div className="w-9 h-9 bg-red-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
                 {user?.name ? getInitials(user.name) : <User size={16} />}
               </div>
               <div className="hidden sm:block text-left">
@@ -247,7 +237,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
 
             {/* Profile Dropdown */}
             {profileOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+              <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-xs sm:w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                 {/* User info header */}
                 <div className="px-4 py-3 border-b border-gray-100">
                   <div className="flex items-center gap-3">
@@ -268,7 +258,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
                       setProfileOpen(false);
                       navigate('/profile');
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                   >
                     <User size={16} className="text-gray-400" />
                     Mi perfil
@@ -279,7 +269,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
                         setProfileOpen(false);
                         navigate('/config');
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     >
                       <Settings size={16} className="text-gray-400" />
                       Configuración
@@ -290,7 +280,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
                       setProfileOpen(false);
                       handleLogout();
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
                   >
                     <LogOut size={16} />
                     Cerrar sesión

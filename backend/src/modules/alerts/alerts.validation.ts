@@ -20,6 +20,7 @@ export const alertQuerySchema = z.object({
   severity: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).optional(),
   isRead: z.coerce.boolean().optional(),
   machineId: z.string().uuid().optional(),
+  includeDeleted: z.coerce.boolean().optional(),
   sortBy: z.enum(['createdAt', 'severity', 'type']).default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });

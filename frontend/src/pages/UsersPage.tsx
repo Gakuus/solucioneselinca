@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { Pencil, ToggleLeft, Trash2, RefreshCw, X } from 'lucide-react';
 import { usersApi, User } from '../services/users';
 import { useAuthStore } from '../stores/authStore';
 import { useToast } from '../components/ui/toast';
 import { ConfirmDialog } from '../components/ui/confirm-dialog';
+import { MobileCard, MobileRow } from '../components/ui/mobile-card';
 
 export function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -10,6 +12,7 @@ export function UsersPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
+  const [showInactive, setShowInactive] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -20,7 +23,7 @@ export function UsersPage() {
 
   useEffect(() => {
     loadUsers();
-  }, [currentPage, search, roleFilter]);
+  }, [currentPage, search, roleFilter, showInactive]);
 
   const loadUsers = async () => {
     try {
@@ -30,6 +33,7 @@ export function UsersPage() {
         limit: 10,
         search: search || undefined,
         role: roleFilter || undefined,
+        includeDeleted: showInactive,
       });
       setUsers(response.data);
       setTotalPages(response.pagination.totalPages);
@@ -44,10 +48,20 @@ export function UsersPage() {
     try {
       await usersApi.delete(id);
       setDeleteConfirm({ open: false, id: '' });
-      toast('success', 'Usuario eliminado correctamente');
+      toast('success', 'Usuario desactivado correctamente');
       loadUsers();
     } catch (err: any) {
-      toast('error', err.message || 'Error al eliminar usuario');
+      toast('error', err.message || 'Error al desactivar usuario');
+    }
+  };
+
+  const handleRestore = async (id: string) => {
+    try {
+      await usersApi.restore(id);
+      toast('success', 'Usuario reactivado correctamente');
+      loadUsers();
+    } catch (err: any) {
+      toast('error', err.message || 'Error al reactivar usuario');
     }
   };
 
@@ -149,48 +163,131 @@ export function UsersPage() {
             Limpiar Filtros
           </button>
         </div>
+        <label className="inline-flex items-center mt-3 text-sm text-gray-700">
+          <input
+            type="checkbox"
+            checked={showInactive}
+            onChange={(e) => {
+              setShowInactive(e.target.checked);
+              setCurrentPage(1);
+            }}
+            className="mr-2"
+          />
+          Mostrar inactivos
+        </label>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-3">
+        {isLoading ? (
+          <div className="p-6 text-center text-gray-500 bg-white rounded-lg shadow">Cargando...</div>
+        ) : users.length === 0 ? (
+          <div className="p-6 text-center text-gray-500 bg-white rounded-lg shadow">No se encontraron usuarios</div>
+        ) : (
+          users.map((user) => (
+            <MobileCard key={user.id} inactive={!!user.deletedAt}>
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <div className="min-w-0">
+                  <div className="font-semibold text-gray-900 text-base">{user.name}</div>
+                  <div className="text-sm text-gray-500 break-all">{user.email}</div>
+                </div>
+                {getRoleBadge(user.role)}
+              </div>
+              <MobileRow label="Estado">
+                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                  user.deletedAt ? 'bg-gray-100 text-gray-800' : user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                }`}>
+                  {user.deletedAt ? 'Eliminado' : user.isActive ? 'Activo' : 'Inactivo'}
+                </span>
+              </MobileRow>
+              <MobileRow label="Último acceso">
+                {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Nunca'}
+              </MobileRow>
+              {isAdmin && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {user.deletedAt ? (
+                    <button
+                      onClick={() => handleRestore(user.id)}
+                      className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2.5 bg-green-50 text-green-700 text-sm font-medium rounded-lg"
+                    >
+                      <RefreshCw size={15} /> Reactivar
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setIsFormOpen(true);
+                        }}
+                        className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2.5 bg-red-50 text-red-700 text-sm font-medium rounded-lg"
+                      >
+                        <Pencil size={15} /> Editar
+                      </button>
+                      <button
+                        onClick={() => handleToggleActive(user)}
+                        className={`flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2.5 text-sm font-medium rounded-lg ${
+                          user.isActive ? 'bg-yellow-50 text-yellow-700' : 'bg-green-50 text-green-700'
+                        }`}
+                      >
+                        <ToggleLeft size={15} /> {user.isActive ? 'Desactivar' : 'Activar'}
+                      </button>
+                      {user.id !== currentUser?.id && (
+                        <button
+                          onClick={() => setDeleteConfirm({ open: true, id: user.id })}
+                          className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg"
+                        >
+                          <Trash2 size={15} /> Eliminar
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </MobileCard>
+          ))
+        )}
+      </div>
+
+      {/* Table (md+) */}
+      <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
         {isLoading ? (
           <div className="p-6 text-center text-gray-500">Cargando...</div>
         ) : users.length === 0 ? (
           <div className="p-6 text-center text-gray-500">No se encontraron usuarios</div>
         ) : (
           <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
+          <table className="table-shell">
+            <thead>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
-                <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rol</th>
-                <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-                <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Último Acceso</th>
+                <th className="px-6 py-3">Nombre</th>
+                <th className="px-6 py-3">Email</th>
+                <th className="px-6 py-3">Rol</th>
+                <th className="px-6 py-3">Estado</th>
+                <th className="px-6 py-3">Último Acceso</th>
                 {isAdmin && (
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                  <th className="px-6 py-3">Acciones</th>
                 )}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody>
               {users.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
+                <tr key={user.id} className={`${user.deletedAt ? 'opacity-50 bg-gray-100' : 'hover:bg-gray-50'}`}>
                   <td className="px-6 py-4 whitespace-nowrap font-medium">
                     <div>{user.name}</div>
-                    <div className="sm:hidden text-xs text-gray-500">{user.email}</div>
+                    {user.deletedAt && <div className="text-xs text-gray-500">Inactivo</div>}
                   </td>
-                  <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap">{user.email}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{user.email}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{getRoleBadge(user.role)}</td>
-                  <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <span
                       className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        user.deletedAt ? 'bg-gray-100 text-gray-800' : user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}
                     >
-                      {user.isActive ? 'Activo' : 'Inactivo'}
+                      {user.deletedAt ? 'Eliminado' : user.isActive ? 'Activo' : 'Inactivo'}
                     </span>
                   </td>
-                  <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {user.lastLoginAt
                       ? new Date(user.lastLoginAt).toLocaleDateString()
                       : 'Nunca'}
@@ -198,30 +295,45 @@ export function UsersPage() {
                   {isAdmin && (
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex flex-wrap gap-2">
+                      {user.deletedAt ? (
+                        <button
+                          onClick={() => handleRestore(user.id)}
+                          className="action-btn action-btn-success"
+                        >
+                          <RefreshCw size={15} />
+                          Reactivar
+                        </button>
+                      ) : (
+                      <>
                       <button
                         onClick={() => {
                           setSelectedUser(user);
                           setIsFormOpen(true);
                         }}
-                        className="text-red-600 hover:text-red-900"
+                        className="action-btn action-btn-danger"
                       >
+                        <Pencil size={15} />
                         Editar
                       </button>
                       <button
                         onClick={() => handleToggleActive(user)}
                         className={`${
-                          user.isActive ? 'text-yellow-600 hover:text-yellow-900' : 'text-green-600 hover:text-green-900'
+                          user.isActive ? 'action-btn action-btn-warning' : 'action-btn action-btn-success'
                         }`}
                       >
+                        <ToggleLeft size={15} />
                         {user.isActive ? 'Desactivar' : 'Activar'}
                       </button>
                       {user.id !== currentUser?.id && (
                         <button
                           onClick={() => setDeleteConfirm({ open: true, id: user.id })}
-                          className="text-red-600 hover:text-red-900"
+                          className="action-btn action-btn-danger"
                         >
+                          <Trash2 size={15} />
                           Eliminar
                         </button>
+                      )}
+                      </>
                       )}
                       </div>
                     </td>
@@ -238,11 +350,11 @@ export function UsersPage() {
           <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
             <div className="flex-1 flex justify-between sm:hidden">
               <button onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1}
-                className="relative inline-flex items-center px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
+                className="relative inline-flex items-center px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 min-h-[44px]">
                 Anterior
               </button>
               <button onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages}
-                className="ml-3 relative inline-flex items-center px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
+                className="ml-3 relative inline-flex items-center px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 min-h-[44px]">
                 Siguiente
               </button>
             </div>
@@ -294,9 +406,9 @@ export function UsersPage() {
       {/* Delete Confirm */}
       <ConfirmDialog
         open={deleteConfirm.open}
-        title="Eliminar usuario"
-        message="¿Estás seguro de eliminar este usuario? Esta acción no se puede deshacer."
-        confirmLabel="Eliminar"
+        title="Desactivar usuario"
+        message="¿Estás seguro de desactivar este usuario? Podrás reactivarlo más tarde."
+        confirmLabel="Desactivar"
         variant="danger"
         onConfirm={() => handleDelete(deleteConfirm.id)}
         onCancel={() => setDeleteConfirm({ open: false, id: '' })}
@@ -368,11 +480,16 @@ function UserFormModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
-        <h2 className="text-lg font-semibold mb-4">
-          {user ? 'Editar Usuario' : 'Nuevo Usuario'}
-        </h2>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50">
+      <div className="bg-white rounded-t-2xl sm:rounded-lg p-5 sm:p-6 w-full sm:max-w-lg sm:mx-4 max-h-[92vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">
+            {user ? 'Editar Usuario' : 'Nuevo Usuario'}
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-2 -mr-2 min-w-[44px] min-h-[44px]" aria-label="Cerrar">
+            <X size={20} />
+          </button>
+        </div>
 
         {error && (
           <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
@@ -387,7 +504,7 @@ function UserFormModal({
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 min-h-[44px]"
               required
             />
           </div>
@@ -398,7 +515,7 @@ function UserFormModal({
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 min-h-[44px]"
               required
             />
           </div>
@@ -410,7 +527,7 @@ function UserFormModal({
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 min-h-[44px]"
                 required={!user}
                 minLength={6}
               />
@@ -427,7 +544,7 @@ function UserFormModal({
             <select
               value={formData.role}
               onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 min-h-[44px]"
             >
               <option value="ADMIN">Administrador</option>
               <option value="SUPERVISOR">Supervisor</option>
@@ -438,7 +555,7 @@ function UserFormModal({
 
           {user && (
             <div className="mb-4">
-              <label className="flex items-center">
+              <label className="flex items-center min-h-[44px]">
                 <input
                   type="checkbox"
                   checked={formData.isActive}
@@ -450,18 +567,18 @@ function UserFormModal({
             </div>
           )}
 
-          <div className="flex justify-end space-x-2">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:space-x-2 sm:space-x-reverse">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+              className="px-4 py-2.5 border border-gray-300 rounded-md hover:bg-gray-50 min-h-[44px]"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+              className="px-4 py-2.5 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 min-h-[44px]"
             >
               {isLoading ? 'Guardando...' : 'Guardar'}
             </button>

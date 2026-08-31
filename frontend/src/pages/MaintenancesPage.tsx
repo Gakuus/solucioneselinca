@@ -1,11 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { Eye, Pencil, ToggleLeft, ArchiveX, RefreshCw, X, Upload, FileText } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
-import { maintenancesApi, Maintenance, MaintenanceStats } from '../services/maintenances';
+import { maintenancesApi, Maintenance, MaintenanceItem, MaintenanceStats } from '../services/maintenances';
 import { catalogsApi, MaintenanceType } from '../services/catalogs';
 import { machinesApi, Machine } from '../services/machines';
 import { usersApi, User } from '../services/users';
 import { useToast } from '../components/ui/toast';
 import { ConfirmDialog } from '../components/ui/confirm-dialog';
+import { MobileCard, MobileRow } from '../components/ui/mobile-card';
+import { MAINTENANCE_STATUS, label } from '../utils/labels';
+import { maintenanceTypesLabel, maintenanceTechniciansLabel } from '../utils/maintenance';
+import { todayInputDate } from '../utils/date';
+
+function typeLabel(maintenance: Maintenance): string {
+  return maintenanceTypesLabel(maintenance);
+}
+
+function techniciansLabel(maintenance: Maintenance): string {
+  return maintenanceTechniciansLabel(maintenance);
+}
 
 export function MaintenancesPage() {
   const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
@@ -15,6 +28,7 @@ export function MaintenancesPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [showInactive, setShowInactive] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedMaintenance, setSelectedMaintenance] = useState<Maintenance | null>(null);
@@ -22,13 +36,59 @@ export function MaintenancesPage() {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string }>({ open: false, id: '' });
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuthStore();
   const { toast } = useToast();
+
+  const getExportParams = () => ({
+    search: search || undefined,
+    status: statusFilter || undefined,
+    category: categoryFilter || undefined,
+    includeDeleted: showInactive || undefined,
+  });
+
+  const handleExport = async (format: 'pdf' | 'xlsx') => {
+    try {
+      const blob =
+        format === 'pdf'
+          ? await maintenancesApi.exportPDF(getExportParams())
+          : await maintenancesApi.exportExcel(getExportParams());
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = format === 'pdf' ? 'mantenimientos.pdf' : 'mantenimientos.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast('success', format === 'pdf' ? 'PDF exportado correctamente' : 'Excel exportado correctamente');
+    } catch (err: any) {
+      toast('error', err.message || 'Error al exportar');
+    }
+  };
+
+  const handleImportFile = async (file: File) => {
+    try {
+      const result = await maintenancesApi.importExcel(file);
+      toast(
+        'success',
+        `Importación completada: ${result.imported} creados${result.errors.length ? `, ${result.errors.length} errores` : ''}`
+      );
+      if (result.errors.length > 0) {
+        setError(result.errors.slice(0, 10).join(' • '));
+      }
+      setCurrentPage(1);
+      loadMaintenances();
+      loadStats();
+    } catch (err: any) {
+      toast('error', err.message || 'Error al importar');
+    }
+  };
 
   useEffect(() => {
     loadMaintenances();
     loadStats();
-  }, [currentPage, search, statusFilter, categoryFilter]);
+  }, [currentPage, search, statusFilter, categoryFilter, showInactive]);
 
   const loadMaintenances = async () => {
     try {
@@ -39,6 +99,7 @@ export function MaintenancesPage() {
         search: search || undefined,
         status: statusFilter || undefined,
         category: categoryFilter || undefined,
+        includeDeleted: showInactive,
       });
       setMaintenances(response.data);
       setTotalPages(response.pagination.totalPages);
@@ -62,11 +123,22 @@ export function MaintenancesPage() {
     try {
       await maintenancesApi.delete(id);
       setDeleteConfirm({ open: false, id: '' });
-      toast('success', 'Mantenimiento eliminado correctamente');
+      toast('success', 'Mantenimiento desactivado correctamente');
       loadMaintenances();
       loadStats();
     } catch (err: any) {
-      toast('error', err.message || 'Error al eliminar mantenimiento');
+      toast('error', err.message || 'Error al desactivar mantenimiento');
+    }
+  };
+
+  const handleRestore = async (id: string) => {
+    try {
+      await maintenancesApi.restore(id);
+      toast('success', 'Mantenimiento reactivado correctamente');
+      loadMaintenances();
+      loadStats();
+    } catch (err: any) {
+      toast('error', err.message || 'Error al reactivar mantenimiento');
     }
   };
 
@@ -122,17 +194,54 @@ export function MaintenancesPage() {
     <div>
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <h1 className="text-2xl font-bold">Mantenimientos</h1>
-        {canEdit && (
-          <button
-            onClick={() => {
-              setSelectedMaintenance(null);
-              setIsFormOpen(true);
-            }}
-            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
-          >
-            + Nuevo Mantenimiento
-          </button>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {canDelete && (
+            <>
+              <button
+                onClick={() => handleExport('pdf')}
+                className="inline-flex items-center gap-1.5 bg-red-700 text-white px-4 py-2 rounded-lg hover:bg-red-800"
+              >
+                <FileText size={16} />
+                Exportar PDF
+              </button>
+              <button
+                onClick={() => handleExport('xlsx')}
+                className="inline-flex items-center gap-1.5 bg-green-700 text-white px-4 py-2 rounded-lg hover:bg-green-800"
+              >
+                Exportar Excel
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center gap-1.5 bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800"
+              >
+                <Upload size={16} />
+                Importar Excel
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleImportFile(file);
+                  e.target.value = '';
+                }}
+              />
+            </>
+          )}
+          {canEdit && (
+            <button
+              onClick={() => {
+                setSelectedMaintenance(null);
+                setIsFormOpen(true);
+              }}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+            >
+              + Nuevo Mantenimiento
+            </button>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -229,90 +338,212 @@ export function MaintenancesPage() {
             Limpiar Filtros
           </button>
         </div>
+        <label className="inline-flex items-center mt-3 text-sm text-gray-700">
+          <input
+            type="checkbox"
+            checked={showInactive}
+            onChange={(e) => {
+              setShowInactive(e.target.checked);
+              setCurrentPage(1);
+            }}
+            className="mr-2"
+          />
+          Mostrar inactivos
+        </label>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-3">
+        {isLoading ? (
+          <div className="p-6 text-center text-gray-500 bg-white rounded-lg shadow">Cargando...</div>
+        ) : maintenances.length === 0 ? (
+          <div className="p-6 text-center text-gray-500 bg-white rounded-lg shadow">No se encontraron mantenimientos</div>
+        ) : (
+          maintenances.map((maintenance) => (
+            <MobileCard key={maintenance.id} inactive={!!maintenance.deletedAt}>
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <div className="min-w-0">
+                  <div className="font-semibold text-gray-900 text-base">{maintenance.machine?.name}</div>
+                  <div className="text-sm text-gray-500">{maintenance.machine?.code}</div>
+                </div>
+                {maintenance.deletedAt ? (
+                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Eliminado</span>
+                ) : (
+                  getStatusBadge(maintenance.status)
+                )}
+              </div>
+              <MobileRow label="Tipo">
+                {typeLabel(maintenance)}
+              </MobileRow>
+              <MobileRow label="Categoría">
+                {maintenance.maintenanceType?.isPreventive ? 'Preventivo' : 'Correctivo'}
+              </MobileRow>
+              <MobileRow label="Técnico">{techniciansLabel(maintenance)}</MobileRow>
+              <MobileRow label="Fecha">{new Date(maintenance.receivedDate).toLocaleDateString()}</MobileRow>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  onClick={() => {
+                    setSelectedMaintenance(maintenance);
+                    setIsDetailOpen(true);
+                  }}
+                  className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2.5 bg-red-50 text-red-700 text-sm font-medium rounded-lg"
+                >
+                  <Eye size={15} /> Ver
+                </button>
+                {!maintenance.deletedAt && canEdit && maintenance.status !== 'CANCELLED' && (
+                  <>
+                    {maintenance.status !== 'COMPLETED' && (
+                      <button
+                        onClick={() => {
+                          setSelectedMaintenance(maintenance);
+                          setIsStatusModalOpen(true);
+                        }}
+                        className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2.5 bg-yellow-50 text-yellow-700 text-sm font-medium rounded-lg"
+                      >
+                        <ToggleLeft size={15} /> Estado
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setSelectedMaintenance(maintenance);
+                        setIsFormOpen(true);
+                      }}
+                      className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg"
+                    >
+                      <Pencil size={15} /> Editar
+                    </button>
+                  </>
+                )}
+                {!maintenance.deletedAt && canDelete && maintenance.status === 'SCHEDULED' && (
+                  <button
+                    onClick={() => setDeleteConfirm({ open: true, id: maintenance.id })}
+                    className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2.5 bg-red-50 text-red-700 text-sm font-medium rounded-lg"
+                  >
+                    <ArchiveX size={15} /> Desactivar
+                  </button>
+                )}
+                {maintenance.deletedAt && canDelete && (
+                  <button
+                    onClick={() => handleRestore(maintenance.id)}
+                    className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2.5 bg-green-50 text-green-700 text-sm font-medium rounded-lg"
+                  >
+                    <RefreshCw size={15} /> Reactivar
+                  </button>
+                )}
+              </div>
+            </MobileCard>
+          ))
+        )}
+      </div>
+
+      {/* Table (md+) */}
+      <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
         {isLoading ? (
           <div className="p-6 text-center text-gray-500">Cargando...</div>
         ) : maintenances.length === 0 ? (
           <div className="p-6 text-center text-gray-500">No se encontraron mantenimientos</div>
         ) : (
           <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
+          <table className="table-shell">
+            <thead>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Máquina</th>
-                <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Técnico</th>
-                <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                <th className="px-6 py-3">Máquina</th>
+                <th className="px-6 py-3">Tipo</th>
+                <th className="px-6 py-3">Técnico</th>
+                <th className="px-6 py-3">Fecha</th>
+                <th className="px-6 py-3">Estado</th>
+                <th className="px-6 py-3 text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody>
               {maintenances.map((maintenance) => (
-                <tr key={maintenance.id} className="hover:bg-gray-50">
+                <tr key={maintenance.id} className={`${maintenance.deletedAt ? 'opacity-50 bg-gray-100' : ''}`}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="font-medium">{maintenance.machine?.code}</div>
-                    <div className="text-sm text-gray-500 sm:hidden">{maintenance.machine?.name}</div>
-                    <div className="hidden sm:table-cell text-sm text-gray-500">{maintenance.machine?.name}</div>
+                    <div className="text-sm text-gray-500">{maintenance.machine?.name}</div>
+                    {maintenance.deletedAt && <div className="text-xs text-gray-500">Eliminado</div>}
                   </td>
-                  <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap">
-                    <div>{maintenance.maintenanceType?.name}</div>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>{typeLabel(maintenance)}</div>
                     <div className="text-sm text-gray-500">
                       {maintenance.maintenanceType?.isPreventive ? 'Preventivo' : 'Correctivo'}
                     </div>
                   </td>
-                  <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm">
-                    {maintenance.technician?.name}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+{techniciansLabel(maintenance)}
                   </td>
-                  <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
                     {new Date(maintenance.receivedDate).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(maintenance.status)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {maintenance.deletedAt ? (
+                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                        Eliminado
+                      </span>
+                    ) : (
+                      getStatusBadge(maintenance.status)
+                    )}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <div className="flex flex-wrap gap-2">
+                    {maintenance.deletedAt ? (
+                      canDelete && (
+                        <button
+                          onClick={() => handleRestore(maintenance.id)}
+                          className="action-btn action-btn-success"
+                        >
+                          <RefreshCw size={15} />
+                          Reactivar
+                        </button>
+                      )
+                    ) : (
+                    <div className="flex flex-wrap gap-1.5">
                     <button
                       onClick={() => {
                         setSelectedMaintenance(maintenance);
                         setIsDetailOpen(true);
                       }}
-                      className="text-red-600 hover:text-red-900"
+                      className="action-btn action-btn-danger"
                     >
+                      <Eye size={15} />
                       Ver
                     </button>
-                    {canEdit && maintenance.status !== 'COMPLETED' && maintenance.status !== 'CANCELLED' && (
+                    {canEdit && maintenance.status !== 'CANCELLED' && (
                       <>
                         <button
                           onClick={() => {
                             setSelectedMaintenance(maintenance);
                             setIsFormOpen(true);
                           }}
-                          className="text-gray-600 hover:text-gray-900"
+                          className="action-btn action-btn-secondary"
                         >
+                          <Pencil size={15} />
                           Editar
                         </button>
-                        <button
-                          onClick={() => {
-                            setSelectedMaintenance(maintenance);
-                            setIsStatusModalOpen(true);
-                          }}
-                          className="text-yellow-600 hover:text-yellow-900"
-                        >
-                          Estado
-                        </button>
+                        {maintenance.status !== 'COMPLETED' && (
+                          <button
+                            onClick={() => {
+                              setSelectedMaintenance(maintenance);
+                              setIsStatusModalOpen(true);
+                            }}
+                            className="action-btn action-btn-warning"
+                          >
+                            <ToggleLeft size={15} />
+                            Estado
+                          </button>
+                        )}
                       </>
                     )}
                     {canDelete && maintenance.status === 'SCHEDULED' && (
                       <button
                         onClick={() => setDeleteConfirm({ open: true, id: maintenance.id })}
-                        className="text-red-600 hover:text-red-900"
+                        className="action-btn action-btn-danger"
                       >
-                        Eliminar
+                        <ArchiveX size={15} />
+                        Desactivar
                       </button>
                     )}
                     </div>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -326,11 +557,11 @@ export function MaintenancesPage() {
           <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
             <div className="flex-1 flex justify-between sm:hidden">
               <button onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1}
-                className="relative inline-flex items-center px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
+                className="relative inline-flex items-center px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 min-h-[44px]">
                 Anterior
               </button>
               <button onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages}
-                className="ml-3 relative inline-flex items-center px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
+                className="ml-3 relative inline-flex items-center px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 min-h-[44px]">
                 Siguiente
               </button>
             </div>
@@ -394,15 +625,16 @@ export function MaintenancesPage() {
             setIsDetailOpen(false);
             setSelectedMaintenance(null);
           }}
+          onItemsChanged={loadMaintenances}
         />
       )}
 
       {/* Delete Confirm */}
       <ConfirmDialog
         open={deleteConfirm.open}
-        title="Eliminar mantenimiento"
-        message="¿Estás seguro de eliminar este mantenimiento? Esta acción no se puede deshacer."
-        confirmLabel="Eliminar"
+        title="Desactivar mantenimiento"
+        message="¿Estás seguro de desactivar este mantenimiento? Podrás reactivarlo más tarde."
+        confirmLabel="Desactivar"
         variant="danger"
         onConfirm={() => handleDelete(deleteConfirm.id)}
         onCancel={() => setDeleteConfirm({ open: false, id: '' })}
@@ -429,9 +661,7 @@ function MaintenanceFormModal({
 
   const [formData, setFormData] = useState({
     machineId: maintenance?.machineId || '',
-    maintenanceTypeId: maintenance?.maintenanceTypeId || '',
-    technicianId: maintenance?.technicianId || '',
-    receivedDate: maintenance?.receivedDate ? maintenance.receivedDate.split('T')[0] : new Date().toISOString().split('T')[0],
+    receivedDate: maintenance?.receivedDate ? maintenance.receivedDate.split('T')[0] : todayInputDate(),
     currentHours: maintenance?.currentHours?.toString() || '',
     description: maintenance?.description || '',
     observations: maintenance?.observations || '',
@@ -439,6 +669,25 @@ function MaintenanceFormModal({
     nextMaintenanceDate: maintenance?.nextMaintenanceDate ? maintenance.nextMaintenanceDate.split('T')[0] : '',
     estimatedNextDate: maintenance?.estimatedNextDate ? maintenance.estimatedNextDate.split('T')[0] : '',
   });
+
+  const initialTypeIds = maintenance
+    ? (maintenance.typeAssignments && maintenance.typeAssignments.length > 0
+        ? [...maintenance.typeAssignments].sort((a, b) => a.order - b.order).map((a) => a.maintenanceType.id)
+        : maintenance.maintenanceTypeId
+        ? [maintenance.maintenanceTypeId]
+        : [])
+    : [];
+
+  const initialTechnicianIds = maintenance
+    ? (maintenance.technicianAssignments && maintenance.technicianAssignments.length > 0
+        ? [...maintenance.technicianAssignments].sort((a, b) => a.order - b.order).map((a) => a.technician.id)
+        : maintenance.technicianId
+        ? [maintenance.technicianId]
+        : [])
+    : [];
+
+  const [maintenanceTypeIds, setMaintenanceTypeIds] = useState<string[]>(initialTypeIds);
+  const [technicianIds, setTechnicianIds] = useState<string[]>(initialTechnicianIds);
 
   const [items, setItems] = useState<Array<{
     name: string;
@@ -486,8 +735,20 @@ function MaintenanceFormModal({
     setError(null);
 
     try {
+      if (maintenanceTypeIds.length === 0) {
+        setError('Debe seleccionar al menos un tipo de mantenimiento');
+        setIsSaving(false);
+        return;
+      }
+      if (technicianIds.length === 0) {
+        setError('Debe asignar al menos un técnico');
+        setIsSaving(false);
+        return;
+      }
       const payload = {
         ...formData,
+        maintenanceTypeIds,
+        technicianIds,
         currentHours: parseFloat(formData.currentHours) || 0,
         hoursUntilNext: formData.hoursUntilNext ? parseFloat(formData.hoursUntilNext) : undefined,
         nextMaintenanceDate: formData.nextMaintenanceDate || undefined,
@@ -533,23 +794,23 @@ function MaintenanceFormModal({
 
   if (isLoadingData) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 w-full max-w-lg mx-4">
-          <div className="text-center text-gray-500">Cargando datos...</div>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50">
+        <div className="bg-white rounded-t-2xl sm:rounded-lg p-5 sm:p-6 w-full sm:max-w-lg sm:mx-4">
+          <div className="text-center text-gray-500 py-4">Cargando datos...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50">
+      <div className="bg-white rounded-t-2xl sm:rounded-lg p-5 sm:p-6 w-full sm:max-w-2xl sm:mx-4 max-h-[92vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">
             {isEditing ? 'Editar Mantenimiento' : 'Nuevo Mantenimiento'}
           </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            ✕
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-2 -mr-2 min-w-[44px] min-h-[44px]" aria-label="Cerrar">
+            <X size={20} />
           </button>
         </div>
 
@@ -566,7 +827,7 @@ function MaintenanceFormModal({
               <select
                 value={formData.machineId}
                 onChange={(e) => setFormData({ ...formData, machineId: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 min-h-[44px]"
                 required
                 disabled={isEditing}
               >
@@ -580,37 +841,69 @@ function MaintenanceFormModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Mantenimiento *</label>
-              <select
-                value={formData.maintenanceTypeId}
-                onChange={(e) => setFormData({ ...formData, maintenanceTypeId: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                required
-              >
-                <option value="">Seleccionar tipo</option>
-                {maintenanceTypes.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name} ({t.isPreventive ? 'Preventivo' : 'Correctivo'})
-                  </option>
-                ))}
-              </select>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tipos de Mantenimiento *</label>
+              <div className="border border-gray-300 rounded-md px-3 py-2 min-h-[44px]">
+                {maintenanceTypes.map((t) => {
+                  const checked = maintenanceTypeIds.includes(t.id);
+                  const isPrimary = maintenanceTypeIds[0] === t.id;
+                  return (
+                    <label
+                      key={t.id}
+                      className="flex items-center gap-2 py-1.5 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => {
+                          if (checked) {
+                            setMaintenanceTypeIds(maintenanceTypeIds.filter((id) => id !== t.id));
+                          } else {
+                            setMaintenanceTypeIds([...maintenanceTypeIds, t.id]);
+                          }
+                        }}
+                        className="h-4 w-4 accent-red-600"
+                      />
+                      <span className="text-sm text-gray-800">{t.name}</span>
+                      <span className="text-xs text-gray-400">({t.isPreventive ? 'Preventivo' : 'Correctivo'})</span>
+                      {isPrimary && <span className="ml-auto text-xs font-semibold text-red-600">Principal</span>}
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="mt-1 text-xs text-gray-500">El primero seleccionado se usa como tipo principal.</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Técnico Asignado *</label>
-              <select
-                value={formData.technicianId}
-                onChange={(e) => setFormData({ ...formData, technicianId: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                required
-              >
-                <option value="">Seleccionar técnico</option>
-                {technicians.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Técnicos Asignados *</label>
+              <div className="border border-gray-300 rounded-md px-3 py-2 min-h-[44px]">
+                {technicians.map((t) => {
+                  const checked = technicianIds.includes(t.id);
+                  const isPrimary = technicianIds[0] === t.id;
+                  return (
+                    <label
+                      key={t.id}
+                      className="flex items-center gap-2 py-1.5 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => {
+                          if (checked) {
+                            setTechnicianIds(technicianIds.filter((id) => id !== t.id));
+                          } else {
+                            setTechnicianIds([...technicianIds, t.id]);
+                          }
+                        }}
+                        className="h-4 w-4 accent-red-600"
+                      />
+                      <span className="text-sm text-gray-800">{t.name}</span>
+                      <span className="text-xs text-gray-400">({t.email})</span>
+                      {isPrimary && <span className="ml-auto text-xs font-semibold text-red-600">Principal</span>}
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="mt-1 text-xs text-gray-500">Puedes asignar varios; el primero seleccionado es el principal.</p>
             </div>
 
             <div>
@@ -619,7 +912,7 @@ function MaintenanceFormModal({
                 type="date"
                 value={formData.receivedDate}
                 onChange={(e) => setFormData({ ...formData, receivedDate: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full px-3 py-2.5 min-h-[44px] border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                 required
               />
             </div>
@@ -630,7 +923,7 @@ function MaintenanceFormModal({
                 type="number"
                 value={formData.currentHours}
                 onChange={(e) => setFormData({ ...formData, currentHours: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full px-3 py-2.5 min-h-[44px] border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                 min="0"
                 step="0.1"
                 required
@@ -643,7 +936,7 @@ function MaintenanceFormModal({
                 type="number"
                 value={formData.hoursUntilNext}
                 onChange={(e) => setFormData({ ...formData, hoursUntilNext: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full px-3 py-2.5 min-h-[44px] border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                 min="0"
                 step="1"
               />
@@ -655,7 +948,7 @@ function MaintenanceFormModal({
                 type="date"
                 value={formData.nextMaintenanceDate}
                 onChange={(e) => setFormData({ ...formData, nextMaintenanceDate: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full px-3 py-2.5 min-h-[44px] border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
 
@@ -665,7 +958,7 @@ function MaintenanceFormModal({
                 type="date"
                 value={formData.estimatedNextDate}
                 onChange={(e) => setFormData({ ...formData, estimatedNextDate: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full px-3 py-2.5 min-h-[44px] border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
           </div>
@@ -675,7 +968,7 @@ function MaintenanceFormModal({
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="w-full px-3 py-2.5 min-h-[44px] border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               rows={3}
               required
             />
@@ -686,7 +979,7 @@ function MaintenanceFormModal({
             <textarea
               value={formData.observations}
               onChange={(e) => setFormData({ ...formData, observations: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="w-full px-3 py-2.5 min-h-[44px] border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               rows={2}
             />
           </div>
@@ -707,60 +1000,61 @@ function MaintenanceFormModal({
             {items.length > 0 && (
               <div className="space-y-2">
                 {items.map((item, index) => (
-                  <div key={index} className="grid grid-cols-2 md:grid-cols-12 gap-2 items-end">
-                    <div className="col-span-2 md:col-span-3">
+                  <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end md:items-center border border-gray-100 rounded-lg p-2 bg-gray-50/50">
+                    <div className="md:col-span-3">
                       <input
                         type="text"
                         placeholder="Nombre"
                         value={item.name}
                         onChange={(e) => updateItem(index, 'name', e.target.value)}
-                        className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-red-500"
+                        className="w-full px-2 py-2.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-red-500 min-h-[44px]"
                       />
                     </div>
-                    <div className="col-span-1">
+                    <div className="md:col-span-1">
                       <input
                         type="number"
                         placeholder="Cant."
                         value={item.quantity}
                         onChange={(e) => updateItem(index, 'quantity', e.target.value)}
-                        className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-red-500"
+                        className="w-full px-2 py-2.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-red-500 min-h-[44px]"
                         min="1"
                       />
                     </div>
-                    <div className="col-span-2 md:col-span-2">
+                    <div className="md:col-span-2">
                       <input
                         type="number"
                         placeholder="Costo"
                         value={item.unitCost}
                         onChange={(e) => updateItem(index, 'unitCost', e.target.value)}
-                        className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-red-500"
+                        className="w-full px-2 py-2.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-red-500 min-h-[44px]"
                         min="0"
                         step="0.01"
                       />
                     </div>
-                    <div className="col-span-2 md:col-span-2">
+                    <div className="md:col-span-2">
                       <input
                         type="text"
                         placeholder="Proveedor"
                         value={item.supplier}
                         onChange={(e) => updateItem(index, 'supplier', e.target.value)}
-                        className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-red-500"
+                        className="w-full px-2 py-2.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-red-500 min-h-[44px]"
                       />
                     </div>
-                    <div className="col-span-2 md:col-span-3">
+                    <div className="md:col-span-3">
                       <input
                         type="text"
                         placeholder="Categoría"
                         value={item.category}
                         onChange={(e) => updateItem(index, 'category', e.target.value)}
-                        className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-red-500"
+                        className="w-full px-2 py-2.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-red-500 min-h-[44px]"
                       />
                     </div>
-                    <div className="col-span-1">
+                    <div className="md:col-span-1 flex md:justify-center">
                       <button
                         type="button"
                         onClick={() => removeItem(index)}
-                        className="text-red-500 hover:text-red-700 text-sm"
+                        className="text-red-500 hover:text-red-700 text-sm min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        aria-label="Quitar ítem"
                       >
                         ✕
                       </button>
@@ -771,18 +1065,18 @@ function MaintenanceFormModal({
             )}
           </div>
 
-          <div className="flex justify-end space-x-2 pt-4 border-t">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:space-x-2 sm:space-x-reverse pt-4 border-t">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+              className="px-4 py-2.5 border border-gray-300 rounded-md hover:bg-gray-50 min-h-[44px]"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+              className="px-4 py-2.5 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 min-h-[44px]"
             >
               {isSaving ? 'Guardando...' : isEditing ? 'Actualizar' : 'Crear'}
             </button>
@@ -827,14 +1121,19 @@ function StatusChangeModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
-        <h2 className="text-lg font-semibold mb-4">Cambiar Estado</h2>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50">
+      <div className="bg-white rounded-t-2xl sm:rounded-lg p-5 sm:p-6 w-full sm:max-w-lg sm:mx-4 max-h-[92vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Cambiar Estado</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-2 -mr-2 min-w-[44px] min-h-[44px]" aria-label="Cerrar">
+            <X size={20} />
+          </button>
+        </div>
         <p className="text-sm text-gray-600 mb-4">
-          Mantenimiento: {maintenance.machine?.code} - {maintenance.maintenanceType?.name}
+          Mantenimiento: {maintenance.machine?.code} - {typeLabel(maintenance)}
         </p>
         <p className="text-sm text-gray-600 mb-4">
-          Estado actual: <span className="font-medium">{maintenance.status}</span>
+          Estado actual: <span className="font-medium">{label(MAINTENANCE_STATUS, maintenance.status)}</span>
         </p>
 
         {allowedTransitions.length === 0 ? (
@@ -850,7 +1149,7 @@ function StatusChangeModal({
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 min-h-[44px]"
                 required
               >
                 <option value="">Seleccionar estado</option>
@@ -871,7 +1170,7 @@ function StatusChangeModal({
                   type="number"
                   value={completedHours}
                   onChange={(e) => setCompletedHours(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 min-h-[44px]"
                   min="0"
                   step="0.1"
                   required
@@ -887,7 +1186,7 @@ function StatusChangeModal({
                 <textarea
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                   rows={3}
                   required
                 />
@@ -901,23 +1200,23 @@ function StatusChangeModal({
               <textarea
                 value={observations}
                 onChange={(e) => setObservations(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                 rows={2}
               />
             </div>
 
-            <div className="flex justify-end space-x-2">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:space-x-2 sm:space-x-reverse">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                className="px-4 py-2.5 border border-gray-300 rounded-md hover:bg-gray-50 min-h-[44px]"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={!status}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+                className="px-4 py-2.5 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 min-h-[44px]"
               >
                 Cambiar Estado
               </button>
@@ -932,19 +1231,87 @@ function StatusChangeModal({
 function MaintenanceDetailModal({
   maintenance,
   onClose,
+  onItemsChanged,
 }: {
   maintenance: Maintenance;
   onClose: () => void;
+  onItemsChanged?: () => void;
 }) {
+  const { toast } = useToast();
+  const [items, setItems] = useState<MaintenanceItem[]>(maintenance.items || []);
+  const [isBusy, setIsBusy] = useState(false);
+  const [form, setForm] = useState({ name: '', quantity: '1', unitCost: '', supplier: '', category: '' });
+  const [error, setError] = useState<string | null>(null);
+
+  const canEdit = maintenance.status !== 'CANCELLED';
+  const totalCost = items.reduce((sum, i) => sum + (i.unitCost || 0) * i.quantity, 0);
+
+  const refresh = async () => {
+    try {
+      const fresh = await maintenancesApi.getById(maintenance.id);
+      setItems(fresh.items || []);
+      onItemsChanged?.();
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleAddItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim()) {
+      setError('El nombre del ítem es obligatorio');
+      return;
+    }
+    setIsBusy(true);
+    setError(null);
+    try {
+      await maintenancesApi.addItem(maintenance.id, {
+        name: form.name,
+        quantity: parseInt(form.quantity) || 1,
+        unitCost: form.unitCost ? parseFloat(form.unitCost) : undefined,
+        supplier: form.supplier || undefined,
+        category: form.category || undefined,
+      });
+      setForm({ name: '', quantity: '1', unitCost: '', supplier: '', category: '' });
+      toast('success', 'Ítem agregado correctamente');
+      await refresh();
+    } catch (err: any) {
+      setError(err.message || 'Error al agregar ítem');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const handleDeleteItem = async (itemId: string) => {
+    if (!window.confirm('¿Seguro que deseas eliminar este ítem?')) return;
+    setIsBusy(true);
+    setError(null);
+    try {
+      await maintenancesApi.deleteItem(maintenance.id, itemId);
+      toast('success', 'Ítem eliminado correctamente');
+      await refresh();
+    } catch (err: any) {
+      setError(err.message || 'Error al eliminar ítem');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50">
+      <div className="bg-white rounded-t-2xl sm:rounded-lg p-5 sm:p-6 w-full sm:max-w-2xl sm:mx-4 max-h-[92vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">Detalle del Mantenimiento</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            ✕
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-2 -mr-2 min-w-[44px] min-h-[44px]" aria-label="Cerrar">
+            <X size={20} />
           </button>
         </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
+            {error}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div>
@@ -953,15 +1320,15 @@ function MaintenanceDetailModal({
           </div>
           <div>
             <label className="text-sm font-medium text-gray-500">Tipo</label>
-            <p className="text-sm">{maintenance.maintenanceType?.name}</p>
+            <p className="text-sm">{typeLabel(maintenance)}</p>
           </div>
           <div>
             <label className="text-sm font-medium text-gray-500">Técnico</label>
-            <p className="text-sm">{maintenance.technician?.name}</p>
+            <p className="text-sm">{techniciansLabel(maintenance)}</p>
           </div>
           <div>
             <label className="text-sm font-medium text-gray-500">Estado</label>
-            <p className="text-sm">{maintenance.status}</p>
+            <p className="text-sm">{label(MAINTENANCE_STATUS, maintenance.status)}</p>
           </div>
           <div>
             <label className="text-sm font-medium text-gray-500">Fecha Recibida</label>
@@ -997,38 +1364,128 @@ function MaintenanceDetailModal({
           </div>
         )}
 
-        {maintenance.items && maintenance.items.length > 0 && (
-          <div className="mb-6">
-            <label className="text-sm font-medium text-gray-500 mb-2 block">Ítems</label>
-            <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 py-2 text-left">Nombre</th>
-                  <th className="px-3 py-2 text-left">Cantidad</th>
-                  <th className="px-3 py-2 text-left">Costo Unit.</th>
-                  <th className="px-3 py-2 text-left">Proveedor</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {maintenance.items.map((item) => (
-                  <tr key={item.id}>
-                    <td className="px-3 py-2">{item.name}</td>
-                    <td className="px-3 py-2">{item.quantity}</td>
-                    <td className="px-3 py-2">{item.unitCost ? `$${item.unitCost}` : '-'}</td>
-                    <td className="px-3 py-2">{item.supplier || '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            </div>
+        <div className="mb-6">
+          <div className="flex justify-between items-center mb-2">
+            <label className="text-sm font-medium text-gray-500">Ítems / Repuestos Utilizados</label>
+            <span className="text-sm font-bold text-gray-700">Total: ${totalCost.toFixed(2)}</span>
           </div>
-        )}
+
+          {items.length === 0 ? (
+            <p className="text-sm text-gray-500 mb-3">No se registraron ítems para este mantenimiento.</p>
+          ) : (
+            <div className="overflow-x-auto mb-3">
+              <table className="table-shell text-sm">
+                <thead>
+                  <tr>
+                    <th className="px-3 py-2 text-left">Nombre</th>
+                    <th className="px-3 py-2 text-left">Categoría</th>
+                    <th className="px-3 py-2 text-right">Cantidad</th>
+                    <th className="px-3 py-2 text-right">Costo Unit.</th>
+                    <th className="px-3 py-2 text-right">Subtotal</th>
+                    <th className="px-3 py-2 text-left">Proveedor</th>
+                    {canEdit && <th className="px-3 py-2"></th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item) => (
+                    <tr key={item.id}>
+                      <td className="px-3 py-2">{item.name}</td>
+                      <td className="px-3 py-2">{item.category || '-'}</td>
+                      <td className="px-3 py-2 text-right">{item.quantity}</td>
+                      <td className="px-3 py-2 text-right">{item.unitCost != null ? `$${Number(item.unitCost).toFixed(2)}` : '-'}</td>
+                      <td className="px-3 py-2 text-right font-medium">${((item.unitCost || 0) * item.quantity).toFixed(2)}</td>
+                      <td className="px-3 py-2">{item.supplier || '-'}</td>
+                      {canEdit && (
+                        <td className="px-3 py-2 text-right">
+                          <button
+                            onClick={() => handleDeleteItem(item.id)}
+                            disabled={isBusy}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            ✕
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {canEdit && (
+            <form onSubmit={handleAddItem} className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
+                <div className="md:col-span-3">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Nombre *</label>
+                  <input
+                    type="text"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    className="w-full px-2 py-2.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-red-500 min-h-[44px]"
+                    placeholder="Ej. Filtro de aceite"
+                  />
+                </div>
+                <div className="md:col-span-1">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Cant.</label>
+                  <input
+                    type="number"
+                    value={form.quantity}
+                    onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+                    className="w-full px-2 py-2.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-red-500 min-h-[44px]"
+                    min="1"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Costo Unit.</label>
+                  <input
+                    type="number"
+                    value={form.unitCost}
+                    onChange={(e) => setForm({ ...form, unitCost: e.target.value })}
+                    className="w-full px-2 py-2.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-red-500 min-h-[44px]"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Proveedor</label>
+                  <input
+                    type="text"
+                    value={form.supplier}
+                    onChange={(e) => setForm({ ...form, supplier: e.target.value })}
+                    className="w-full px-2 py-2.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-red-500 min-h-[44px]"
+                    placeholder="Ej. Mobil"
+                  />
+                </div>
+                <div className="md:col-span-3">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Categoría</label>
+                  <input
+                    type="text"
+                    value={form.category}
+                    onChange={(e) => setForm({ ...form, category: e.target.value })}
+                    className="w-full px-2 py-2.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-red-500 min-h-[44px]"
+                    placeholder="Ej. Filtros, Lubricantes"
+                  />
+                </div>
+                <div className="md:col-span-1">
+                  <button
+                    type="submit"
+                    disabled={isBusy}
+                    className="w-full px-3 py-2.5 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:opacity-50 min-h-[44px]"
+                  >
+                    + Agregar
+                  </button>
+                </div>
+              </div>
+            </form>
+          )}
+        </div>
 
         <div className="flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+            className="px-4 py-2.5 border border-gray-300 rounded-md hover:bg-gray-50 min-h-[44px]"
           >
             Cerrar
           </button>

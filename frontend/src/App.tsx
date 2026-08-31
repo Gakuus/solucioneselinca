@@ -12,6 +12,8 @@ import { AuditPage } from './pages/AuditPage';
 import { ConfigPage } from './pages/ConfigPage';
 import { CatalogsPage } from './pages/CatalogsPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { MachineDetailPage } from './pages/MachineDetailPage';
+import { SparePartsPage } from './pages/SparePartsPage';
 import { MainLayout } from './components/layout/MainLayout';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { SessionRestore } from './components/auth/SessionRestore';
@@ -34,7 +36,9 @@ function App() {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="machines" element={<MachinesPage />} />
+            <Route path="machines/:id" element={<MachineDetailPage />} />
             <Route path="maintenances" element={<MaintenancesPage />} />
+            <Route path="spare-parts" element={<SparePartsPage />} />
             <Route
               path="scheduling"
               element={

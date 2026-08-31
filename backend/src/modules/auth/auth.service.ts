@@ -34,6 +34,10 @@ export class AuthService {
       throw new UnauthorizedError('Credenciales inválidas');
     }
 
+    if (user.deletedAt) {
+      throw new ForbiddenError('Usuario eliminado. Contacte al administrador.');
+    }
+
     if (!user.isActive) {
       throw new ForbiddenError('Usuario desactivado. Contacte al administrador.');
     }
@@ -171,7 +175,7 @@ export class AuthService {
       where: { id: payload.userId },
     });
 
-    if (!user || !user.isActive) {
+    if (!user || !user.isActive || user.deletedAt) {
       throw new UnauthorizedError('Usuario no encontrado o desactivado');
     }
 

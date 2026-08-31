@@ -6,9 +6,13 @@ import { configService } from '../config/config.service';
 
 export class AlertsService {
   async getAll(query: AlertQueryInput) {
-    const { page, limit, search, type, severity, isRead, machineId, sortBy, sortOrder } = query;
+    const { page, limit, search, type, severity, isRead, machineId, sortBy, sortOrder, includeDeleted } = query;
 
     const where: Prisma.AlertWhereInput = {};
+
+    if (!includeDeleted) {
+      where.deletedAt = null;
+    }
 
     if (search) {
       where.OR = [
@@ -176,7 +180,7 @@ export class AlertsService {
 
   async markAllAsRead(userId: string) {
     const result = await prisma.alert.updateMany({
-      where: { isRead: false },
+      where: { isRead: false, deletedAt: null },
       data: {
         isRead: true,
         readAt: new Date(),
@@ -193,22 +197,39 @@ export class AlertsService {
       throw new NotFoundError('Alerta no encontrada');
     }
 
-    await prisma.alert.delete({ where: { id } });
+    await prisma.alert.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
     return { message: 'Alerta eliminada correctamente' };
+  }
+
+  async restore(id: string) {
+    const alert = await prisma.alert.findUnique({ where: { id } });
+    if (!alert) {
+      throw new NotFoundError('Alerta no encontrada');
+    }
+
+    await prisma.alert.update({
+      where: { id },
+      data: { deletedAt: null },
+    });
+    return { message: 'Alerta restaurada correctamente' };
   }
 
   async getStats() {
     const [total, unread, byType, bySeverity] = await Promise.all([
-      prisma.alert.count(),
-      prisma.alert.count({ where: { isRead: false } }),
+      prisma.alert.count({ where: { deletedAt: null } }),
+      prisma.alert.count({ where: { isRead: false, deletedAt: null } }),
       prisma.alert.groupBy({
         by: ['type'],
+        where: { deletedAt: null },
         _count: true,
       }),
       prisma.alert.groupBy({
         by: ['severity'],
+        where: { isRead: false, deletedAt: null },
         _count: true,
-        where: { isRead: false },
       }),
     ]);
 

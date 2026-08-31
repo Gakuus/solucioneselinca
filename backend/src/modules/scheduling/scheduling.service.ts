@@ -1,5 +1,6 @@
 import { PrismaClient, Prisma, MaintenanceFrequency } from '@prisma/client';
 import { NotFoundError, BadRequestError } from '../../shared/errors/AppError';
+import { parseLocalDate } from '../../shared/utils/dates';
 import { CreateScheduleInput, UpdateScheduleInput, ScheduleQueryInput } from './scheduling.validation';
 
 const prisma = new PrismaClient();
@@ -30,9 +31,13 @@ function calculateNextExecution(lastExecution: Date, frequency: MaintenanceFrequ
 
 export class SchedulingService {
   async getAll(query: ScheduleQueryInput) {
-    const { page, limit, search, machineId, maintenanceTypeId, frequency, isActive, sortBy, sortOrder } = query;
+    const { page, limit, search, machineId, maintenanceTypeId, frequency, isActive, sortBy, sortOrder, includeDeleted } = query;
 
     const where: Prisma.MaintenanceScheduleWhereInput = {};
+
+    if (!includeDeleted) {
+      where.deletedAt = null;
+    }
 
     if (search) {
       where.OR = [
@@ -148,9 +153,9 @@ export class SchedulingService {
         maintenanceTypeId: data.maintenanceTypeId,
         frequency: data.frequency,
         interval: data.interval,
-        startDate: new Date(data.startDate),
-        endDate: data.endDate ? new Date(data.endDate) : null,
-        nextExecution: new Date(data.nextExecution),
+        startDate: parseLocalDate(data.startDate),
+        endDate: data.endDate ? parseLocalDate(data.endDate) : null,
+        nextExecution: parseLocalDate(data.nextExecution),
         hoursInterval: data.hoursInterval,
         isActive: data.isActive,
         description: data.description,
@@ -194,9 +199,9 @@ export class SchedulingService {
 
     if (data.frequency) updateData.frequency = data.frequency;
     if (data.interval) updateData.interval = data.interval;
-    if (data.startDate) updateData.startDate = new Date(data.startDate);
-    if (data.endDate !== undefined) updateData.endDate = data.endDate ? new Date(data.endDate) : null;
-    if (data.nextExecution) updateData.nextExecution = new Date(data.nextExecution);
+    if (data.startDate) updateData.startDate = parseLocalDate(data.startDate);
+    if (data.endDate !== undefined) updateData.endDate = data.endDate ? parseLocalDate(data.endDate) : null;
+    if (data.nextExecution) updateData.nextExecution = parseLocalDate(data.nextExecution);
     if (data.hoursInterval !== undefined) updateData.hoursInterval = data.hoursInterval;
     if (data.isActive !== undefined) updateData.isActive = data.isActive;
     if (data.description !== undefined) updateData.description = data.description;
@@ -223,8 +228,24 @@ export class SchedulingService {
       throw new NotFoundError('Programación no encontrada');
     }
 
-    await prisma.maintenanceSchedule.delete({ where: { id } });
-    return { message: 'Programación eliminada correctamente' };
+    await prisma.maintenanceSchedule.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+    return { message: 'Programación desactivada correctamente' };
+  }
+
+  async restore(id: string) {
+    const existing = await prisma.maintenanceSchedule.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundError('Programación no encontrada');
+    }
+
+    await prisma.maintenanceSchedule.update({
+      where: { id },
+      data: { deletedAt: null },
+    });
+    return { message: 'Programación reactivada correctamente' };
   }
 
   async toggleActive(id: string) {
@@ -286,6 +307,7 @@ export class SchedulingService {
     const schedules = await prisma.maintenanceSchedule.findMany({
       where: {
         isActive: true,
+        deletedAt: null,
         nextExecution: {
           gte: now,
           lte: futureDate,

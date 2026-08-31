@@ -1,6 +1,7 @@
 import { prisma } from '../../config/database';
 import { Prisma, AuditAction } from '@prisma/client';
 import { AuditQueryInput } from './audit.validation';
+import { parseLocalDate, endOfLocalDay } from '../../shared/utils/dates';
 
 export class AuditService {
   async getAll(query: AuditQueryInput) {
@@ -32,10 +33,10 @@ export class AuditService {
     if (startDate || endDate) {
       where.createdAt = {};
       if (startDate) {
-        where.createdAt.gte = new Date(startDate);
+        where.createdAt.gte = parseLocalDate(startDate);
       }
       if (endDate) {
-        where.createdAt.lte = new Date(endDate);
+        where.createdAt.lte = endOfLocalDay(endDate);
       }
     }
 

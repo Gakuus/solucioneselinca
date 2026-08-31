@@ -5,6 +5,7 @@ export interface MachineType {
   name: string;
   description?: string;
   isActive: boolean;
+  deletedAt?: string | null;
   _count?: {
     machines: number;
   };
@@ -17,6 +18,7 @@ export interface MaintenanceType {
   isPreventive: boolean;
   estimatedHours?: number;
   isActive: boolean;
+  deletedAt?: string | null;
   _count?: {
     maintenances: number;
   };
@@ -37,8 +39,8 @@ export interface CreateMaintenanceTypeData {
 }
 
 export const catalogsApi = {
-  getMachineTypes: async (): Promise<MachineType[]> => {
-    const response = await api.get<MachineType[]>('/catalogs/machine-types');
+  getMachineTypes: async (includeDeleted = false): Promise<MachineType[]> => {
+    const response = await api.get<MachineType[]>(`/catalogs/machine-types?includeDeleted=${includeDeleted}`);
     return response.data as MachineType[];
   },
 
@@ -61,8 +63,12 @@ export const catalogsApi = {
     await api.delete(`/catalogs/machine-types/${id}`);
   },
 
-  getMaintenanceTypes: async (): Promise<MaintenanceType[]> => {
-    const response = await api.get<MaintenanceType[]>('/catalogs/maintenance-types');
+  restoreMachineType: async (id: string): Promise<void> => {
+    await api.patch(`/catalogs/machine-types/${id}/restore`);
+  },
+
+  getMaintenanceTypes: async (includeDeleted = false): Promise<MaintenanceType[]> => {
+    const response = await api.get<MaintenanceType[]>(`/catalogs/maintenance-types?includeDeleted=${includeDeleted}`);
     return response.data as MaintenanceType[];
   },
 
@@ -83,5 +89,9 @@ export const catalogsApi = {
 
   deleteMaintenanceType: async (id: string): Promise<void> => {
     await api.delete(`/catalogs/maintenance-types/${id}`);
+  },
+
+  restoreMaintenanceType: async (id: string): Promise<void> => {
+    await api.patch(`/catalogs/maintenance-types/${id}/restore`);
   },
 };

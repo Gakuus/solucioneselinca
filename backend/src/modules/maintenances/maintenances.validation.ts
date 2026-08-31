@@ -2,8 +2,10 @@ import { z } from 'zod';
 
 export const createMaintenanceSchema = z.object({
   machineId: z.string().uuid('ID de máquina inválido'),
-  maintenanceTypeId: z.string().uuid('ID de tipo de mantenimiento inválido'),
-  technicianId: z.string().uuid('ID de técnico inválido'),
+  maintenanceTypeId: z.string().uuid('ID de tipo de mantenimiento inválido').optional(),
+  maintenanceTypeIds: z.array(z.string().uuid('ID de tipo de mantenimiento inválido')).min(1).optional(),
+  technicianId: z.string().uuid('ID de técnico inválido').optional(),
+  technicianIds: z.array(z.string().uuid('ID de técnico inválido')).min(1).optional(),
   receivedDate: z.string().refine((val) => !isNaN(Date.parse(val)), {
     message: 'Fecha de recepción inválida',
   }),
@@ -28,7 +30,9 @@ export const createMaintenanceSchema = z.object({
 
 export const updateMaintenanceSchema = z.object({
   maintenanceTypeId: z.string().uuid('ID de tipo de mantenimiento inválido').optional(),
+  maintenanceTypeIds: z.array(z.string().uuid('ID de tipo de mantenimiento inválido')).min(1).optional(),
   technicianId: z.string().uuid('ID de técnico inválido').optional(),
+  technicianIds: z.array(z.string().uuid('ID de técnico inválido')).min(1).optional(),
   maintenanceDate: z.string().optional().refine((val) => !val || !isNaN(Date.parse(val)), {
     message: 'Fecha de mantenimiento inválida',
   }),
@@ -42,6 +46,13 @@ export const updateMaintenanceSchema = z.object({
   estimatedNextDate: z.string().optional().refine((val) => !val || !isNaN(Date.parse(val)), {
     message: 'Fecha estimada inválida',
   }),
+  items: z.array(z.object({
+    name: z.string().min(1, 'Nombre del item requerido').max(200),
+    quantity: z.number().int().min(1).default(1),
+    unitCost: z.number().min(0).optional(),
+    supplier: z.string().max(200).optional(),
+    category: z.string().max(100).optional(),
+  })).optional(),
 });
 
 export const maintenanceQuerySchema = z.object({
@@ -59,6 +70,7 @@ export const maintenanceQuerySchema = z.object({
   endDate: z.string().optional().refine((val) => !val || !isNaN(Date.parse(val)), {
     message: 'Fecha de fin inválida',
   }),
+  includeDeleted: z.coerce.boolean().optional(),
   sortBy: z.enum(['receivedDate', 'maintenanceDate', 'createdAt', 'updatedAt', 'status']).default('receivedDate'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });

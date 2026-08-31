@@ -2,11 +2,17 @@ import { Request, Response, NextFunction } from 'express';
 import { machinesService } from './machines.service';
 import { auditService } from '../audit/audit.service';
 import {
+  buildMachineHistoryExcel as buildHistoryExcelData,
+} from '../reports';
+import { buildMachineHistoryPdf } from '../reports/pdf-render';
+import {
   createMachineSchema,
   updateMachineSchema,
   machineQuerySchema,
   changeStatusSchema,
 } from './machines.validation';
+import { importMachinesFromExcel } from './machines-import';
+import { buildMachinesListPdf } from './machines-export';
 import { ZodError } from 'zod';
 
 export class MachinesController {
@@ -156,7 +162,30 @@ export class MachinesController {
 
       res.json({
         status: 'success',
-        message: 'Máquina eliminada exitosamente',
+        message: 'Máquina desactivada correctamente',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async restore(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      await machinesService.restore(id);
+
+      await auditService.log({
+        userId: req.user?.userId,
+        action: 'UPDATE',
+        entityType: 'Machine',
+        entityId: id,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+
+      res.json({
+        status: 'success',
+        message: 'Máquina reactivada correctamente',
       });
     } catch (error) {
       next(error);
@@ -177,11 +206,11 @@ export class MachinesController {
     }
   }
 
-  async exportCSV(req: Request, res: Response, next: NextFunction) {
+  async exportExcel(req: Request, res: Response, next: NextFunction) {
     try {
       const { search, status, machineTypeId, sortBy, sortOrder } = req.query;
 
-      const csv = await machinesService.exportCSV({
+      const { buffer, filename } = await machinesService.exportExcel({
         search: search as string,
         status: status as 'ACTIVE' | 'INACTIVE' | 'IN_MAINTENANCE' | 'DECOMMISSIONED',
         machineTypeId: machineTypeId as string,
@@ -189,9 +218,29 @@ export class MachinesController {
         sortOrder: (sortOrder as 'asc' | 'desc') || 'asc',
       });
 
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename=machines.csv');
-      res.send(csv);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+      res.send(buffer);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async exportListPdf(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { search, status, machineTypeId, sortBy, sortOrder } = req.query;
+
+      const pdf = await buildMachinesListPdf({
+        search: search as string,
+        status: status as 'ACTIVE' | 'INACTIVE' | 'IN_MAINTENANCE' | 'DECOMMISSIONED',
+        machineTypeId: machineTypeId as string,
+        sortBy: (sortBy as 'code' | 'name' | 'createdAt' | 'updatedAt') || 'code',
+        sortOrder: (sortOrder as 'asc' | 'desc') || 'asc',
+      });
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename=maquinas.pdf');
+      res.send(Buffer.from(pdf));
     } catch (error) {
       next(error);
     }
@@ -205,6 +254,56 @@ export class MachinesController {
         status: 'success',
         data: types,
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async exportHistoryPdf(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const pdf = await buildMachineHistoryPdf(id);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename=ficha_maquina_${id}.pdf`);
+      res.send(Buffer.from(pdf));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async exportHistoryExcel(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const { buffer, filename } = await buildHistoryExcelData(id);
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+      res.send(buffer);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async importExcel(req: Request, res: Response, next: NextFunction) {
+    try {
+      const file = (req as any).file as Express.Multer.File | undefined;
+      if (!file) {
+        return res.status(400).json({ status: 'error', message: 'No se subió ningún archivo' });
+      }
+
+      const result = await importMachinesFromExcel(file.buffer, req.user?.userId);
+
+      await auditService.log({
+        userId: req.user?.userId,
+        action: 'CREATE',
+        entityType: 'Machine',
+        newValues: { import: result, file: file.originalname },
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+
+      res.json({ status: 'success', data: result });
     } catch (error) {
       next(error);
     }

@@ -1,5 +1,7 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  engineType    = "binary"
+  binaryTargets = ["native", "linux-arm64-openssl-3.0.x"]
 }
 
 datasource db {
@@ -54,53 +56,86 @@ enum AuditAction {
   LOGOUT
 }
 
-model User {
-  id            String    @id @default(uuid())
-  name          String
-  email         String    @unique
-  passwordHash  String    @map("password_hash")
-  role          UserRole  @default(VIEWER)
-  isActive      Boolean   @default(true) @map("is_active")
-  lastLoginAt   DateTime? @map("last_login_at")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+enum SparePartCategory {
+  FILTER
+  LUBRICANT
+  HYDRAULIC
+  ELECTRICAL
+  MECHANICAL
+  TIRE
+  CHEMICAL
+  OTHER
+}
 
-  maintenances       Maintenance[]   @relation("TechnicianMaintenances")
-  alertsRead         Alert[]         @relation("AlertReader")
-  auditLogs          AuditLog[]
-  notifications      Notification[]
-  readNotifications  Notification[]  @relation("NotificationReader")
+enum SparePartUnit {
+  UNIT
+  LITER
+  KILOGRAM
+  GALLON
+  METER
+  PACK
+}
+
+enum SparePartMovementType {
+  IN
+  OUT
+  ADJUST
+}
+
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  role         UserRole  @default(VIEWER)
+  isActive     Boolean   @default(true) @map("is_active")
+  deletedAt    DateTime? @map("deleted_at")
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  maintenances          Maintenance[]                     @relation("TechnicianMaintenances")
+  technicianAssignments MaintenanceTechnicianAssignment[] @relation("TechnicianAssignments")
+  alertsRead            Alert[]                           @relation("AlertReader")
+  auditLogs             AuditLog[]
+  sparePartMovements    SparePartMovement[]
+  notifications         Notification[]
+  readNotifications     Notification[]                    @relation("NotificationReader")
 
   @@map("users")
 }
 
 model MachineType {
-  id          String   @id @default(uuid())
-  name        String   @unique
+  id          String    @id @default(uuid())
+  name        String    @unique
   description String?
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
+  isActive    Boolean   @default(true) @map("is_active")
+  deletedAt   DateTime? @map("deleted_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
 
   machines Machine[]
+
+  spareParts SparePart[]
 
   @@map("machine_types")
 }
 
 model Machine {
-  id                 String        @id @default(uuid())
-  code               String        @unique
-  name               String
-  machineTypeId      String        @map("machine_type_id")
-  brand              String
-  model              String
-  serialNumber       String?       @map("serial_number")
-  year               Int?
-  dailyHoursAverage  Float         @default(8) @map("daily_hours_average")
-  status             MachineStatus @default(ACTIVE)
-  createdAt          DateTime      @default(now()) @map("created_at")
-  updatedAt          DateTime      @updatedAt @map("updated_at")
+  id                String        @id @default(uuid())
+  code              String        @unique
+  name              String
+  machineTypeId     String        @map("machine_type_id")
+  brand             String
+  model             String
+  serialNumber      String?       @map("serial_number")
+  year              Int?
+  dailyHoursAverage Float         @default(8) @map("daily_hours_average")
+  status            MachineStatus @default(ACTIVE)
+  deletedAt         DateTime?     @map("deleted_at")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
 
-  machineType  MachineType   @relation(fields: [machineTypeId], references: [id])
+  machineType  MachineType           @relation(fields: [machineTypeId], references: [id])
   maintenances Maintenance[]
   alerts       Alert[]
   schedules    MaintenanceSchedule[]
@@ -112,45 +147,50 @@ model Machine {
 }
 
 model MaintenanceType {
-  id              String              @id @default(uuid())
-  name            String              @unique
-  description     String?
-  isPreventive    Boolean             @default(true) @map("is_preventive")
-  estimatedHours  Float?              @map("estimated_hours")
-  isActive        Boolean             @default(true) @map("is_active")
-  createdAt       DateTime            @default(now()) @map("created_at")
+  id             String    @id @default(uuid())
+  name           String    @unique
+  description    String?
+  isPreventive   Boolean   @default(true) @map("is_preventive")
+  estimatedHours Float?    @map("estimated_hours")
+  isActive       Boolean   @default(true) @map("is_active")
+  deletedAt      DateTime? @map("deleted_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
 
-  maintenances    Maintenance[]
-  schedules       MaintenanceSchedule[]
+  maintenances Maintenance[]
+  schedules    MaintenanceSchedule[]
+  assignments  MaintenanceTypeAssignment[]
 
   @@map("maintenance_types")
 }
 
 model Maintenance {
-  id                    String            @id @default(uuid())
-  machineId             String            @map("machine_id")
-  maintenanceTypeId     String            @map("maintenance_type_id")
-  technicianId          String            @map("technician_id")
-  receivedDate          DateTime          @map("received_date")
-  maintenanceDate       DateTime?         @map("maintenance_date")
-  currentHours          Float             @map("current_hours")
-  description           String
-  observations          String?
-  hoursUntilNext        Float?            @map("hours_until_next")
-  nextMaintenanceDate   DateTime?         @map("next_maintenance_date")
-  estimatedNextDate     DateTime?         @map("estimated_next_date")
-  status                MaintenanceStatus @default(SCHEDULED)
-  completedAt           DateTime?         @map("completed_at")
-  cancelledAt           DateTime?         @map("cancelled_at")
-  cancelReason          String?           @map("cancel_reason")
-  createdAt             DateTime          @default(now()) @map("created_at")
-  updatedAt             DateTime          @updatedAt @map("updated_at")
+  id                  String            @id @default(uuid())
+  machineId           String            @map("machine_id")
+  maintenanceTypeId   String            @map("maintenance_type_id")
+  technicianId        String            @map("technician_id")
+  receivedDate        DateTime          @map("received_date")
+  maintenanceDate     DateTime?         @map("maintenance_date")
+  currentHours        Float             @map("current_hours")
+  description         String
+  observations        String?
+  hoursUntilNext      Float?            @map("hours_until_next")
+  nextMaintenanceDate DateTime?         @map("next_maintenance_date")
+  estimatedNextDate   DateTime?         @map("estimated_next_date")
+  status              MaintenanceStatus @default(SCHEDULED)
+  completedAt         DateTime?         @map("completed_at")
+  cancelledAt         DateTime?         @map("cancelled_at")
+  cancelReason        String?           @map("cancel_reason")
+  deletedAt           DateTime?         @map("deleted_at")
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
 
-  machine          Machine          @relation(fields: [machineId], references: [id])
-  maintenanceType  MaintenanceType  @relation(fields: [maintenanceTypeId], references: [id])
-  technician       User             @relation("TechnicianMaintenances", fields: [technicianId], references: [id])
-  items            MaintenanceItem[]
-  alerts           Alert[]
+  machine               Machine                           @relation(fields: [machineId], references: [id])
+  maintenanceType       MaintenanceType                   @relation(fields: [maintenanceTypeId], references: [id])
+  technician            User                              @relation("TechnicianMaintenances", fields: [technicianId], references: [id])
+  items                 MaintenanceItem[]
+  alerts                Alert[]
+  typeAssignments       MaintenanceTypeAssignment[]
+  technicianAssignments MaintenanceTechnicianAssignment[]
 
   @@index([machineId])
   @@index([status])
@@ -159,32 +199,112 @@ model Maintenance {
   @@map("maintenances")
 }
 
+model MaintenanceTypeAssignment {
+  id                String   @id @default(uuid())
+  maintenanceId     String   @map("maintenance_id")
+  maintenanceTypeId String   @map("maintenance_type_id")
+  order             Int      @default(0)
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  maintenance     Maintenance     @relation(fields: [maintenanceId], references: [id], onDelete: Cascade)
+  maintenanceType MaintenanceType @relation(fields: [maintenanceTypeId], references: [id])
+
+  @@unique([maintenanceId, maintenanceTypeId])
+  @@index([maintenanceId])
+  @@index([maintenanceTypeId])
+  @@map("maintenance_type_assignments")
+}
+
+model MaintenanceTechnicianAssignment {
+  id            String   @id @default(uuid())
+  maintenanceId String   @map("maintenance_id")
+  technicianId  String   @map("technician_id")
+  order         Int      @default(0)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  maintenance Maintenance @relation(fields: [maintenanceId], references: [id], onDelete: Cascade)
+  technician  User        @relation("TechnicianAssignments", fields: [technicianId], references: [id], onDelete: Restrict)
+
+  @@unique([maintenanceId, technicianId])
+  @@index([maintenanceId])
+  @@index([technicianId])
+  @@map("maintenance_technician_assignments")
+}
+
 model MaintenanceItem {
-  id              String      @id @default(uuid())
-  maintenanceId   String      @map("maintenance_id")
-  name            String
-  quantity        Int         @default(1)
-  unitCost        Float?      @map("unit_cost")
-  supplier        String?
-  category        String?
-  createdAt       DateTime    @default(now()) @map("created_at")
+  id            String   @id @default(uuid())
+  maintenanceId String   @map("maintenance_id")
+  name          String
+  quantity      Int      @default(1)
+  unitCost      Float?   @map("unit_cost")
+  supplier      String?
+  category      String?
+  createdAt     DateTime @default(now()) @map("created_at")
 
   maintenance Maintenance @relation(fields: [maintenanceId], references: [id], onDelete: Cascade)
 
   @@map("maintenance_items")
 }
 
+model SparePart {
+  id               String              @id @default(uuid())
+  code             String
+  name             String
+  category         SparePartCategory   @default(OTHER)
+  unit             SparePartUnit       @default(UNIT)
+  quantity         Float               @default(0)
+  minStock         Float               @default(0) @map("min_stock")
+  unitCost         Float?              @map("unit_cost")
+  supplier         String?
+  location         String?
+  machineTypeId    String?             @map("machine_type_id")
+  description      String?
+  isActive         Boolean             @default(true) @map("is_active")
+  deletedAt        DateTime?           @map("deleted_at")
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+
+  machineType MachineType?          @relation(fields: [machineTypeId], references: [id])
+  movements   SparePartMovement[]
+
+  @@unique([code, deletedAt])
+  @@index([category])
+  @@index([machineTypeId])
+  @@index([isActive])
+  @@map("spare_parts")
+}
+
+model SparePartMovement {
+  id           String                @id @default(uuid())
+  sparePartId  String                @map("spare_part_id")
+  type         SparePartMovementType
+  quantity     Float
+  unitCost     Float?                @map("unit_cost")
+  notes        String?
+  userId       String?               @map("user_id")
+  createdAt    DateTime              @default(now()) @map("created_at")
+
+  sparePart SparePart @relation(fields: [sparePartId], references: [id], onDelete: Cascade)
+  user      User?     @relation(fields: [userId], references: [id])
+
+  @@index([sparePartId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("spare_part_movements")
+}
+
 model Alert {
-  id              String          @id @default(uuid())
-  machineId       String          @map("machine_id")
-  maintenanceId   String?         @map("maintenance_id")
-  type            AlertType
-  message         String
-  severity        AlertSeverity   @default(MEDIUM)
-  isRead          Boolean         @default(false) @map("is_read")
-  readAt          DateTime?       @map("read_at")
-  readById        String?         @map("read_by")
-  createdAt       DateTime        @default(now()) @map("created_at")
+  id            String        @id @default(uuid())
+  machineId     String        @map("machine_id")
+  maintenanceId String?       @map("maintenance_id")
+  type          AlertType
+  message       String
+  severity      AlertSeverity @default(MEDIUM)
+  isRead        Boolean       @default(false) @map("is_read")
+  readAt        DateTime?     @map("read_at")
+  readById      String?       @map("read_by")
+  deletedAt     DateTime?     @map("deleted_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
 
   machine     Machine      @relation(fields: [machineId], references: [id])
   maintenance Maintenance? @relation(fields: [maintenanceId], references: [id])
@@ -198,18 +318,18 @@ model Alert {
 }
 
 model Notification {
-  id          String    @id @default(uuid())
-  userId      String    @map("user_id")
-  title       String
-  message     String
-  type        String
-  isRead      Boolean   @default(false) @map("is_read")
-  readAt      DateTime? @map("read_at")
-  readById    String?   @map("read_by")
-  createdAt   DateTime  @default(now()) @map("created_at")
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  title     String
+  message   String
+  type      String
+  isRead    Boolean   @default(false) @map("is_read")
+  readAt    DateTime? @map("read_at")
+  readById  String?   @map("read_by")
+  createdAt DateTime  @default(now()) @map("created_at")
 
-  user     User   @relation(fields: [userId], references: [id])
-  readBy   User?  @relation("NotificationReader", fields: [readById], references: [id])
+  user   User  @relation(fields: [userId], references: [id])
+  readBy User? @relation("NotificationReader", fields: [readById], references: [id])
 
   @@index([userId])
   @@index([isRead])
@@ -217,16 +337,16 @@ model Notification {
 }
 
 model AuditLog {
-  id          String      @id @default(uuid())
-  userId      String?     @map("user_id")
-  action      AuditAction
-  entityType  String      @map("entity_type")
-  entityId    String?     @map("entity_id")
-  oldValues   Json?       @map("old_values")
-  newValues   Json?       @map("new_values")
-  ipAddress   String?     @map("ip_address")
-  userAgent   String?     @map("user_agent")
-  createdAt   DateTime    @default(now()) @map("created_at")
+  id         String      @id @default(uuid())
+  userId     String?     @map("user_id")
+  action     AuditAction
+  entityType String      @map("entity_type")
+  entityId   String?     @map("entity_id")
+  oldValues  Json?       @map("old_values")
+  newValues  Json?       @map("new_values")
+  ipAddress  String?     @map("ip_address")
+  userAgent  String?     @map("user_agent")
+  createdAt  DateTime    @default(now()) @map("created_at")
 
   user User? @relation(fields: [userId], references: [id])
 
@@ -256,12 +376,13 @@ model MaintenanceSchedule {
   lastExecution     DateTime?            @map("last_execution")
   hoursInterval     Float?               @map("hours_interval")
   isActive          Boolean              @default(true) @map("is_active")
+  deletedAt         DateTime?            @map("deleted_at")
   description       String?
   createdAt         DateTime             @default(now()) @map("created_at")
   updatedAt         DateTime             @updatedAt @map("updated_at")
 
-  machine          Machine          @relation(fields: [machineId], references: [id])
-  maintenanceType  MaintenanceType  @relation(fields: [maintenanceTypeId], references: [id])
+  machine         Machine         @relation(fields: [machineId], references: [id])
+  maintenanceType MaintenanceType @relation(fields: [maintenanceTypeId], references: [id])
 
   @@index([machineId])
   @@index([nextExecution])

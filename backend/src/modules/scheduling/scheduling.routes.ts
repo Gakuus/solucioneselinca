@@ -49,6 +49,13 @@ router.delete(
 );
 
 router.patch(
+  '/:id/restore',
+  authorize('ADMIN', 'SUPERVISOR'),
+  validate({ params: idParamSchema }),
+  schedulingController.restore
+);
+
+router.patch(
   '/:id/toggle',
   authorize('ADMIN', 'SUPERVISOR'),
   validate({ params: idParamSchema }),

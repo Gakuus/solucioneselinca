@@ -54,6 +54,11 @@ prisma/migrations/**/migration_lock.toml
 # Uploads
 uploads/
 
+# Backups de base de datos (son grandes/binarios; no versionar)
+backups/
+
 # Temp
 tmp/
 temp/
+backend/dist-new.tgz
+frontend/serve.mjs

@@ -55,6 +55,13 @@ router.delete(
   alertsController.delete
 );
 
+router.patch(
+  '/:id/restore',
+  validate({ params: idParamSchema }),
+  authorize('ADMIN'),
+  alertsController.restore
+);
+
 router.post(
   '/check-upcoming',
   authorize('ADMIN', 'SUPERVISOR'),

@@ -1,7 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { reportsApi, MaintenanceReport, MachineReport, TechnicianReport, CostReport } from '../services/reports';
+import { MAINTENANCE_STATUS, MACHINE_STATUS, label } from '../utils/labels';
+import { maintenanceTypesLabel, maintenanceTechniciansLabel } from '../utils/maintenance';
+import { formatInputDate, todayInputDate } from '../utils/date';
 
+function calcItemCost(item: { quantity?: number; unitCost?: number }) {
+  return (item.unitCost || 0) * (item.quantity || 0);
+}
+
+function calcMaintenanceCost(m: any) {
+  return (m.items || []).reduce((sum: number, i: any) => sum + calcItemCost(i), 0);
+}
 export function ReportsPage() {
   const [activeTab, setActiveTab] = useState<'maintenance' | 'machine' | 'technician' | 'cost'>('maintenance');
   const [isLoading, setIsLoading] = useState(false);
@@ -9,9 +19,9 @@ export function ReportsPage() {
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
     date.setMonth(date.getMonth() - 1);
-    return date.toISOString().split('T')[0];
+    return formatInputDate(date);
   });
-  const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(() => todayInputDate());
 
   const [maintenanceReport, setMaintenanceReport] = useState<MaintenanceReport | null>(null);
   const [machineReport, setMachineReport] = useState<MachineReport[]>([]);
@@ -56,6 +66,31 @@ export function ReportsPage() {
       setError(err.message || 'Error al cargar reporte');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const [exporting, setExporting] = useState<null | 'pdf' | 'xlsx'>(null);
+
+  const handleExport = async (format: 'pdf' | 'xlsx') => {
+    try {
+      setExporting(format);
+      setError(null);
+      const blob =
+        format === 'pdf'
+          ? await reportsApi.exportPDF(activeTab, { startDate, endDate })
+          : await reportsApi.exportExcel(activeTab, { startDate, endDate });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `reporte_${activeTab}_${startDate}_a_${endDate}.${format === 'pdf' ? 'pdf' : 'xlsx'}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setError(err.message || 'Error al exportar reporte');
+    } finally {
+      setExporting(null);
     }
   };
 
@@ -108,13 +143,27 @@ export function ReportsPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
             />
           </div>
-          <div className="flex items-end">
+          <div className="flex items-end gap-2">
             <button
               onClick={loadReport}
               disabled={isLoading}
               className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
             >
               {isLoading ? 'Cargando...' : 'Generar Reporte'}
+            </button>
+            <button
+              onClick={() => handleExport('pdf')}
+              disabled={!!exporting || isLoading}
+              className="px-4 py-2 bg-red-700 text-white rounded-md hover:bg-red-800 disabled:opacity-50"
+            >
+              {exporting === 'pdf' ? 'Generando PDF...' : 'Exportar PDF'}
+            </button>
+            <button
+              onClick={() => handleExport('xlsx')}
+              disabled={!!exporting || isLoading}
+              className="px-4 py-2 bg-green-700 text-white rounded-md hover:bg-green-800 disabled:opacity-50"
+            >
+              {exporting === 'xlsx' ? 'Generando Excel...' : 'Exportar Excel'}
             </button>
           </div>
         </div>
@@ -187,6 +236,9 @@ export function ReportsPage() {
 }
 
 function MaintenanceReportView({ report }: { report: MaintenanceReport }) {
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const toggle = (id: string) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+
   return (
     <div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -229,27 +281,88 @@ function MaintenanceReportView({ report }: { report: MaintenanceReport }) {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-50">
+      <div className="overflow-x-auto rounded-xl border border-gray-200">
+        <table className="table-shell">
+          <thead>
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Máquina</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Técnico</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+              <th className="px-4 py-3">Máquina</th>
+              <th className="px-4 py-3">Tipo</th>
+              <th className="px-4 py-3">Técnico</th>
+              <th className="px-4 py-3">Fecha</th>
+              <th className="px-4 py-3 text-right">Ítems</th>
+              <th className="px-4 py-3 text-right">Costo</th>
+              <th className="px-4 py-3">Estado</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
-            {report.data.slice(0, 10).map((maintenance) => (
-              <tr key={maintenance.id}>
-                <td className="px-4 py-3 text-sm">{maintenance.machine?.code}</td>
-                <td className="px-4 py-3 text-sm">{maintenance.maintenanceType?.name}</td>
-                <td className="px-4 py-3 text-sm">{maintenance.technician?.name}</td>
-                <td className="px-4 py-3 text-sm">{new Date(maintenance.receivedDate).toLocaleDateString()}</td>
-                <td className="px-4 py-3 text-sm">{maintenance.status}</td>
-              </tr>
-            ))}
+          <tbody>
+            {report.data.slice(0, 50).map((maintenance) => {
+              const cost = calcMaintenanceCost(maintenance);
+              const items = maintenance.items || [];
+              const isOpen = !!expanded[maintenance.id];
+              return (
+                <Fragment key={maintenance.id}>
+                  <tr>
+                    <td className="px-4 py-3 text-sm">
+                      <button
+                        onClick={() => toggle(maintenance.id)}
+                        className="text-gray-400 hover:text-gray-700 mr-2 inline-block w-4 text-left"
+                        title="Ver ítems"
+                      >
+                        {isOpen ? '▾' : '▸'}
+                      </button>
+                      {maintenance.machine?.code}
+                    </td>
+                    <td className="px-4 py-3 text-sm">{maintenanceTypesLabel(maintenance)}</td>
+                    <td className="px-4 py-3 text-sm">{maintenanceTechniciansLabel(maintenance)}</td>
+                    <td className="px-4 py-3 text-sm">{new Date(maintenance.receivedDate).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 text-sm text-right">{items.length}</td>
+                    <td className="px-4 py-3 text-sm text-right font-medium">${cost.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-sm">{label(MAINTENANCE_STATUS, maintenance.status)}</td>
+                  </tr>
+                  {isOpen && (
+                    <tr className="bg-gray-50">
+                      <td colSpan={7} className="px-6 py-3">
+                        {items.length === 0 ? (
+                          <span className="text-sm text-gray-500">No se registraron ítems para este mantenimiento.</span>
+                        ) : (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr>
+                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Ítem</th>
+                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
+                                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Cant.</th>
+                                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Costo Unit.</th>
+                                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Subtotal</th>
+                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Proveedor</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-100">
+                                {items.map((item: any) => (
+                                  <tr key={item.id}>
+                                    <td className="px-3 py-2">{item.name}</td>
+                                    <td className="px-3 py-2">{item.category || '-'}</td>
+                                    <td className="px-3 py-2 text-right">{item.quantity}</td>
+                                    <td className="px-3 py-2 text-right">{item.unitCost != null ? `$${Number(item.unitCost).toFixed(2)}` : '-'}</td>
+                                    <td className="px-3 py-2 text-right font-medium">${calcItemCost(item).toFixed(2)}</td>
+                                    <td className="px-3 py-2">{item.supplier || '-'}</td>
+                                  </tr>
+                                ))}
+                                <tr className="bg-white">
+                                  <td colSpan={4} className="px-3 py-2 text-right font-medium">Total ítems</td>
+                                  <td className="px-3 py-2 text-right font-bold">${cost.toFixed(2)}</td>
+                                  <td className="px-3 py-2"></td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -279,7 +392,7 @@ function MachineReportView({ data }: { data: MachineReport[] }) {
               <td className="px-4 py-3 text-sm font-medium">{machine.code}</td>
               <td className="px-4 py-3 text-sm">{machine.name}</td>
               <td className="px-4 py-3 text-sm">{machine.type}</td>
-              <td className="px-4 py-3 text-sm">{machine.status}</td>
+              <td className="px-4 py-3 text-sm">{label(MACHINE_STATUS, machine.status)}</td>
               <td className="px-4 py-3 text-sm">{machine.totalMaintenances}</td>
               <td className="px-4 py-3 text-sm">{machine.preventiveCount}</td>
               <td className="px-4 py-3 text-sm">{machine.correctiveCount}</td>

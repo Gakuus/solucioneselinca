@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Pencil, ArchiveX, RefreshCw, X } from 'lucide-react';
 import { catalogsApi, MachineType, MaintenanceType } from '../services/catalogs';
 import { useAuthStore } from '../stores/authStore';
 import { useToast } from '../components/ui/toast';
@@ -66,17 +67,18 @@ function MachineTypesTab() {
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<MachineType | null>(null);
+  const [showInactive, setShowInactive] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string }>({ open: false, id: '' });
   const { toast } = useToast();
 
   useEffect(() => {
     loadTypes();
-  }, []);
+  }, [showInactive]);
 
   const loadTypes = async () => {
     try {
       setIsLoading(true);
-      const data = await catalogsApi.getMachineTypes();
+      const data = await catalogsApi.getMachineTypes(showInactive);
       setTypes(data);
     } catch (error) {
       console.error('Error loading machine types:', error);
@@ -89,10 +91,20 @@ function MachineTypesTab() {
     try {
       await catalogsApi.deleteMachineType(id);
       setDeleteConfirm({ open: false, id: '' });
-      toast('success', 'Tipo de máquina eliminado correctamente');
+      toast('success', 'Tipo de máquina desactivado correctamente');
       loadTypes();
     } catch (error: any) {
-      toast('error', error.message || 'Error al eliminar');
+      toast('error', error.message || 'Error al desactivar');
+    }
+  };
+
+  const handleRestore = async (id: string) => {
+    try {
+      await catalogsApi.restoreMachineType(id);
+      toast('success', 'Tipo de máquina reactivado correctamente');
+      loadTypes();
+    } catch (error: any) {
+      toast('error', error.message || 'Error al reactivar');
     }
   };
 
@@ -100,15 +112,26 @@ function MachineTypesTab() {
     <div>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold">Tipos de Máquina</h2>
-        <button
-          onClick={() => {
-            setSelectedType(null);
-            setIsFormOpen(true);
-          }}
-          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
-        >
-          + Nuevo Tipo
-        </button>
+        <div className="flex items-center gap-4">
+          <label className="inline-flex items-center text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={showInactive}
+              onChange={(e) => setShowInactive(e.target.checked)}
+              className="mr-2"
+            />
+            Mostrar inactivos
+          </label>
+          <button
+            onClick={() => {
+              setSelectedType(null);
+              setIsFormOpen(true);
+            }}
+            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+          >
+            + Nuevo Tipo
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -117,20 +140,23 @@ function MachineTypesTab() {
         <div className="text-center py-12 text-gray-500">No hay tipos de máquina registrados</div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
+          <table className="table-shell">
+            <thead>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descripción</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Máquinas</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                <th className="px-6 py-3">Nombre</th>
+                <th className="px-6 py-3">Descripción</th>
+                <th className="px-6 py-3">Máquinas</th>
+                <th className="px-6 py-3">Estado</th>
+                <th className="px-6 py-3">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody>
               {types.map((type) => (
-                <tr key={type.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap font-medium">{type.name}</td>
+                <tr key={type.id} className={`${type.deletedAt ? 'opacity-50 bg-gray-100' : 'hover:bg-gray-50'}`}>
+                  <td className="px-6 py-4 whitespace-nowrap font-medium">
+                    {type.name}
+                    {type.deletedAt && <div className="text-xs text-gray-500">Inactivo</div>}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {type.description || '-'}
                   </td>
@@ -140,28 +166,42 @@ function MachineTypesTab() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
                       className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        type.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        type.deletedAt ? 'bg-gray-100 text-gray-800' : type.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}
                     >
-                      {type.isActive ? 'Activo' : 'Inactivo'}
+                      {type.deletedAt ? 'Eliminado' : type.isActive ? 'Activo' : 'Inactivo'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <button
-                      onClick={() => {
-                        setSelectedType(type);
-                        setIsFormOpen(true);
-                      }}
-                      className="text-red-600 hover:text-red-900 mr-3"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => setDeleteConfirm({ open: true, id: type.id })}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Eliminar
-                    </button>
+                    {type.deletedAt ? (
+                      <button
+                        onClick={() => handleRestore(type.id)}
+                          className="action-btn action-btn-success"
+                        >
+                          <RefreshCw size={15} />
+                          Reactivar
+                        </button>
+                    ) : (
+                      <>
+                      <button
+                        onClick={() => {
+                          setSelectedType(type);
+                          setIsFormOpen(true);
+                        }}
+                          className="action-btn action-btn-danger mr-3"
+                        >
+                          <Pencil size={15} />
+                          Editar
+                        </button>
+                      <button
+                        onClick={() => setDeleteConfirm({ open: true, id: type.id })}
+                          className="action-btn action-btn-danger"
+                        >
+                          <ArchiveX size={15} />
+                          Desactivar
+                        </button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -188,9 +228,9 @@ function MachineTypesTab() {
 
       <ConfirmDialog
         open={deleteConfirm.open}
-        title="Eliminar tipo de máquina"
-        message="¿Estás seguro de eliminar este tipo? Esta acción no se puede deshacer."
-        confirmLabel="Eliminar"
+        title="Desactivar tipo de máquina"
+        message="¿Estás seguro de desactivar este tipo? Podrás reactivarlo más tarde."
+        confirmLabel="Desactivar"
         variant="danger"
         onConfirm={() => handleDelete(deleteConfirm.id)}
         onCancel={() => setDeleteConfirm({ open: false, id: '' })}
@@ -236,11 +276,16 @@ function MachineTypeFormModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
-        <h2 className="text-lg font-semibold mb-4">
-          {type ? 'Editar Tipo' : 'Nuevo Tipo de Máquina'}
-        </h2>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50">
+      <div className="bg-white rounded-t-2xl sm:rounded-lg p-5 sm:p-6 w-full sm:max-w-lg sm:mx-4 max-h-[92vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">
+            {type ? 'Editar Tipo' : 'Nuevo Tipo de Máquina'}
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-2 -mr-2 min-w-[44px] min-h-[44px]" aria-label="Cerrar">
+            <X size={20} />
+          </button>
+        </div>
 
         {error && (
           <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
@@ -255,7 +300,7 @@ function MachineTypeFormModal({
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 min-h-[44px]"
               required
             />
           </div>
@@ -265,13 +310,13 @@ function MachineTypeFormModal({
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               rows={3}
             />
           </div>
 
           <div className="mb-4">
-            <label className="flex items-center">
+            <label className="flex items-center min-h-[44px]">
               <input
                 type="checkbox"
                 checked={formData.isActive}
@@ -282,18 +327,18 @@ function MachineTypeFormModal({
             </label>
           </div>
 
-          <div className="flex justify-end space-x-2">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:space-x-2 sm:space-x-reverse">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+              className="px-4 py-2.5 border border-gray-300 rounded-md hover:bg-gray-50 min-h-[44px]"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+              className="px-4 py-2.5 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 min-h-[44px]"
             >
               {isLoading ? 'Guardando...' : 'Guardar'}
             </button>
@@ -309,17 +354,18 @@ function MaintenanceTypesTab() {
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<MaintenanceType | null>(null);
+  const [showInactive, setShowInactive] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string }>({ open: false, id: '' });
   const { toast } = useToast();
 
   useEffect(() => {
     loadTypes();
-  }, []);
+  }, [showInactive]);
 
   const loadTypes = async () => {
     try {
       setIsLoading(true);
-      const data = await catalogsApi.getMaintenanceTypes();
+      const data = await catalogsApi.getMaintenanceTypes(showInactive);
       setTypes(data);
     } catch (error) {
       console.error('Error loading maintenance types:', error);
@@ -332,10 +378,20 @@ function MaintenanceTypesTab() {
     try {
       await catalogsApi.deleteMaintenanceType(id);
       setDeleteConfirm({ open: false, id: '' });
-      toast('success', 'Tipo de mantenimiento eliminado correctamente');
+      toast('success', 'Tipo de mantenimiento desactivado correctamente');
       loadTypes();
     } catch (error: any) {
-      toast('error', error.message || 'Error al eliminar');
+      toast('error', error.message || 'Error al desactivar');
+    }
+  };
+
+  const handleRestore = async (id: string) => {
+    try {
+      await catalogsApi.restoreMaintenanceType(id);
+      toast('success', 'Tipo de mantenimiento reactivado correctamente');
+      loadTypes();
+    } catch (error: any) {
+      toast('error', error.message || 'Error al reactivar');
     }
   };
 
@@ -343,15 +399,26 @@ function MaintenanceTypesTab() {
     <div>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold">Tipos de Mantenimiento</h2>
-        <button
-          onClick={() => {
-            setSelectedType(null);
-            setIsFormOpen(true);
-          }}
-          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
-        >
-          + Nuevo Tipo
-        </button>
+        <div className="flex items-center gap-4">
+          <label className="inline-flex items-center text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={showInactive}
+              onChange={(e) => setShowInactive(e.target.checked)}
+              className="mr-2"
+            />
+            Mostrar inactivos
+          </label>
+          <button
+            onClick={() => {
+              setSelectedType(null);
+              setIsFormOpen(true);
+            }}
+            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+          >
+            + Nuevo Tipo
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -360,21 +427,24 @@ function MaintenanceTypesTab() {
         <div className="text-center py-12 text-gray-500">No hay tipos de mantenimiento registrados</div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
+          <table className="table-shell">
+            <thead>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descripción</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Horas Est.</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mantenimientos</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                <th className="px-6 py-3">Nombre</th>
+                <th className="px-6 py-3">Descripción</th>
+                <th className="px-6 py-3">Tipo</th>
+                <th className="px-6 py-3">Horas Est.</th>
+                <th className="px-6 py-3">Mantenimientos</th>
+                <th className="px-6 py-3">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody>
               {types.map((type) => (
-                <tr key={type.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap font-medium">{type.name}</td>
+                <tr key={type.id} className={`${type.deletedAt ? 'opacity-50 bg-gray-100' : 'hover:bg-gray-50'}`}>
+                  <td className="px-6 py-4 whitespace-nowrap font-medium">
+                    {type.name}
+                    {type.deletedAt && <div className="text-xs text-gray-500">Inactivo</div>}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {type.description || '-'}
                   </td>
@@ -394,21 +464,35 @@ function MaintenanceTypesTab() {
                     {type._count?.maintenances || 0}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <button
-                      onClick={() => {
-                        setSelectedType(type);
-                        setIsFormOpen(true);
-                      }}
-                      className="text-red-600 hover:text-red-900 mr-3"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => setDeleteConfirm({ open: true, id: type.id })}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Eliminar
-                    </button>
+                    {type.deletedAt ? (
+                      <button
+                        onClick={() => handleRestore(type.id)}
+                          className="action-btn action-btn-success"
+                        >
+                          <RefreshCw size={15} />
+                          Reactivar
+                        </button>
+                    ) : (
+                      <>
+                      <button
+                        onClick={() => {
+                          setSelectedType(type);
+                          setIsFormOpen(true);
+                        }}
+                          className="action-btn action-btn-danger mr-3"
+                        >
+                          <Pencil size={15} />
+                          Editar
+                        </button>
+                      <button
+                        onClick={() => setDeleteConfirm({ open: true, id: type.id })}
+                          className="action-btn action-btn-danger"
+                        >
+                          <ArchiveX size={15} />
+                          Desactivar
+                        </button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -435,9 +519,9 @@ function MaintenanceTypesTab() {
 
       <ConfirmDialog
         open={deleteConfirm.open}
-        title="Eliminar tipo de mantenimiento"
-        message="¿Estás seguro de eliminar este tipo? Esta acción no se puede deshacer."
-        confirmLabel="Eliminar"
+        title="Desactivar tipo de mantenimiento"
+        message="¿Estás seguro de desactivar este tipo? Podrás reactivarlo más tarde."
+        confirmLabel="Desactivar"
         variant="danger"
         onConfirm={() => handleDelete(deleteConfirm.id)}
         onCancel={() => setDeleteConfirm({ open: false, id: '' })}
@@ -490,11 +574,16 @@ function MaintenanceTypeFormModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
-        <h2 className="text-lg font-semibold mb-4">
-          {type ? 'Editar Tipo' : 'Nuevo Tipo de Mantenimiento'}
-        </h2>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50">
+      <div className="bg-white rounded-t-2xl sm:rounded-lg p-5 sm:p-6 w-full sm:max-w-lg sm:mx-4 max-h-[92vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">
+            {type ? 'Editar Tipo' : 'Nuevo Tipo de Mantenimiento'}
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-2 -mr-2 min-w-[44px] min-h-[44px]" aria-label="Cerrar">
+            <X size={20} />
+          </button>
+        </div>
 
         {error && (
           <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
@@ -509,7 +598,7 @@ function MaintenanceTypeFormModal({
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 min-h-[44px]"
               required
             />
           </div>
@@ -519,7 +608,7 @@ function MaintenanceTypeFormModal({
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               rows={3}
             />
           </div>
@@ -529,7 +618,7 @@ function MaintenanceTypeFormModal({
             <select
               value={formData.isPreventive ? 'true' : 'false'}
               onChange={(e) => setFormData({ ...formData, isPreventive: e.target.value === 'true' })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 min-h-[44px]"
             >
               <option value="true">Preventivo</option>
               <option value="false">Correctivo</option>
@@ -542,14 +631,14 @@ function MaintenanceTypeFormModal({
               type="number"
               value={formData.estimatedHours}
               onChange={(e) => setFormData({ ...formData, estimatedHours: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 min-h-[44px]"
               min="0"
               step="0.5"
             />
           </div>
 
           <div className="mb-4">
-            <label className="flex items-center">
+            <label className="flex items-center min-h-[44px]">
               <input
                 type="checkbox"
                 checked={formData.isActive}
@@ -560,18 +649,18 @@ function MaintenanceTypeFormModal({
             </label>
           </div>
 
-          <div className="flex justify-end space-x-2">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:space-x-2 sm:space-x-reverse">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+              className="px-4 py-2.5 border border-gray-300 rounded-md hover:bg-gray-50 min-h-[44px]"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+              className="px-4 py-2.5 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 min-h-[44px]"
             >
               {isLoading ? 'Guardando...' : 'Guardar'}
             </button>

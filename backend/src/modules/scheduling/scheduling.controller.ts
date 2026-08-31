@@ -87,6 +87,26 @@ export class SchedulingController {
     }
   }
 
+  async restore(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const result = await schedulingService.restore(id);
+
+      await auditService.log({
+        userId: req.user?.userId,
+        action: 'UPDATE',
+        entityType: 'Schedule',
+        entityId: id,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+
+      res.json({ status: 'success', data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async toggleActive(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;

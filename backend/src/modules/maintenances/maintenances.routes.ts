@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import multer from 'multer';
 import { maintenancesController } from './maintenances.controller';
 import { authenticate } from '../../shared/middleware/authenticate';
 import { authorize } from '../../shared/middleware/authorize';
@@ -14,6 +15,7 @@ import {
 } from './maintenances.validation';
 
 const router = Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
 router.use(authenticate);
 
@@ -25,6 +27,25 @@ router.get(
 router.get(
   '/calendar',
   maintenancesController.getCalendar
+);
+
+router.get(
+  '/export-pdf',
+  authorize('ADMIN', 'SUPERVISOR'),
+  maintenancesController.exportListPdf
+);
+
+router.get(
+  '/export-xlsx',
+  authorize('ADMIN', 'SUPERVISOR'),
+  maintenancesController.exportListXlsx
+);
+
+router.post(
+  '/import',
+  authorize('ADMIN', 'SUPERVISOR'),
+  upload.single('file'),
+  maintenancesController.importExcel
 );
 
 router.get(
@@ -65,6 +86,13 @@ router.delete(
   authorize('ADMIN', 'SUPERVISOR'),
   validate({ params: idParamSchema }),
   maintenancesController.delete
+);
+
+router.patch(
+  '/:id/restore',
+  authorize('ADMIN', 'SUPERVISOR'),
+  validate({ params: idParamSchema }),
+  maintenancesController.restore
 );
 
 router.post(

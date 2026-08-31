@@ -13,6 +13,7 @@ export interface Schedule {
   hoursInterval?: number;
   isActive: boolean;
   description?: string;
+  deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;
   machine?: {
@@ -63,6 +64,7 @@ export interface ScheduleQueryParams {
   machineId?: string;
   maintenanceTypeId?: string;
   frequency?: string;
+  includeDeleted?: boolean;
   isActive?: boolean;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
@@ -101,6 +103,10 @@ export const schedulingApi = {
 
   delete: async (id: string): Promise<void> => {
     await api.delete(`/scheduling/${id}`);
+  },
+
+  restore: async (id: string): Promise<void> => {
+    await api.patch(`/scheduling/${id}/restore`);
   },
 
   toggleActive: async (id: string): Promise<Schedule> => {

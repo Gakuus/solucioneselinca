@@ -11,9 +11,10 @@ import { ZodError } from 'zod';
 
 export class CatalogsController {
   // Machine Types
-  async getAllMachineTypes(_req: Request, res: Response, next: NextFunction) {
+  async getAllMachineTypes(req: Request, res: Response, next: NextFunction) {
     try {
-      const types = await catalogsService.getAllMachineTypes();
+      const includeDeleted = req.query.includeDeleted === 'true';
+      const types = await catalogsService.getAllMachineTypes(includeDeleted);
       res.json({ status: 'success', data: types });
     } catch (error) {
       next(error);
@@ -101,16 +102,37 @@ export class CatalogsController {
         userAgent: req.headers['user-agent'],
       });
 
-      res.json({ status: 'success', message: 'Tipo de máquina eliminado' });
+      res.json({ status: 'success', message: 'Tipo de máquina desactivado' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async restoreMachineType(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      await catalogsService.restoreMachineType(id);
+
+      await auditService.log({
+        userId: req.user?.userId,
+        action: 'UPDATE',
+        entityType: 'MachineType',
+        entityId: id,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+
+      res.json({ status: 'success', message: 'Tipo de máquina reactivado' });
     } catch (error) {
       next(error);
     }
   }
 
   // Maintenance Types
-  async getAllMaintenanceTypes(_req: Request, res: Response, next: NextFunction) {
+  async getAllMaintenanceTypes(req: Request, res: Response, next: NextFunction) {
     try {
-      const types = await catalogsService.getAllMaintenanceTypes();
+      const includeDeleted = req.query.includeDeleted === 'true';
+      const types = await catalogsService.getAllMaintenanceTypes(includeDeleted);
       res.json({ status: 'success', data: types });
     } catch (error) {
       next(error);
@@ -198,7 +220,27 @@ export class CatalogsController {
         userAgent: req.headers['user-agent'],
       });
 
-      res.json({ status: 'success', message: 'Tipo de mantenimiento eliminado' });
+      res.json({ status: 'success', message: 'Tipo de mantenimiento desactivado' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async restoreMaintenanceType(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      await catalogsService.restoreMaintenanceType(id);
+
+      await auditService.log({
+        userId: req.user?.userId,
+        action: 'UPDATE',
+        entityType: 'MaintenanceType',
+        entityId: id,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+
+      res.json({ status: 'success', message: 'Tipo de mantenimiento reactivado' });
     } catch (error) {
       next(error);
     }

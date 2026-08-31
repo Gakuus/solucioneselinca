@@ -10,6 +10,7 @@ export interface Alert {
   isRead: boolean;
   readAt?: string;
   readById?: string;
+  deletedAt?: string | null;
   createdAt: string;
   machine?: {
     id: string;
@@ -50,6 +51,7 @@ export interface AlertQueryParams {
   severity?: string;
   isRead?: boolean;
   machineId?: string;
+  includeDeleted?: boolean;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
 }
@@ -92,6 +94,10 @@ export const alertsApi = {
 
   delete: async (id: string): Promise<void> => {
     await api.delete(`/alerts/${id}`);
+  },
+
+  restore: async (id: string): Promise<void> => {
+    await api.patch(`/alerts/${id}/restore`);
   },
 
   getStats: async (): Promise<AlertStats> => {

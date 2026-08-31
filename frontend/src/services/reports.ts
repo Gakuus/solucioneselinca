@@ -99,7 +99,7 @@ export const reportsApi = {
     return response.data as CostReport;
   },
 
-  exportCSV: async (type: string, params: ReportQueryParams): Promise<Blob> => {
+  exportPDF: async (type: string, params: ReportQueryParams): Promise<Blob> => {
     const searchParams = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== '') {
@@ -107,7 +107,26 @@ export const reportsApi = {
       }
     });
     const response = await fetch(
-      `${API_BASE_URL}/reports/${type}?${searchParams.toString()}`,
+      `${API_BASE_URL}/reports/${type}/export-pdf?${searchParams.toString()}`,
+      {
+        credentials: 'include',
+        headers: {
+          Authorization: `Bearer ${api.getAccessToken() || ''}`,
+        },
+      }
+    );
+    return response.blob();
+  },
+
+  exportExcel: async (type: string, params: ReportQueryParams): Promise<Blob> => {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') {
+        searchParams.append(key, String(value));
+      }
+    });
+    const response = await fetch(
+      `${API_BASE_URL}/reports/${type}/export-xlsx?${searchParams.toString()}`,
       {
         credentials: 'include',
         headers: {

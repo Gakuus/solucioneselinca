@@ -27,6 +27,7 @@ export const machineQuerySchema = z.object({
   search: z.string().optional(),
   status: z.enum(['ACTIVE', 'INACTIVE', 'IN_MAINTENANCE', 'DECOMMISSIONED']).optional(),
   machineTypeId: z.string().uuid().optional(),
+  includeDeleted: z.coerce.boolean().optional(),
   sortBy: z.enum(['code', 'name', 'createdAt', 'updatedAt']).default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });

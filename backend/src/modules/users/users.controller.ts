@@ -119,7 +119,30 @@ export class UsersController {
 
       res.json({
         status: 'success',
-        message: 'Usuario eliminado exitosamente',
+        message: 'Usuario desactivado exitosamente',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async restore(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      await usersService.restore(id);
+
+      await auditService.log({
+        userId: req.user?.userId,
+        action: 'UPDATE',
+        entityType: 'User',
+        entityId: id,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+
+      res.json({
+        status: 'success',
+        message: 'Usuario reactivado exitosamente',
       });
     } catch (error) {
       next(error);
